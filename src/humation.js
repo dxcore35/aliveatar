@@ -265,10 +265,10 @@ export function darkColors(c, kind = 'agent') {
     hair: human ? floorLight(c.hair, 40) : lift(c.hair, 42, 18),
     bottom: lift(c.bottom, 40, 24),
     clothes: lift(c.clothes, 46, 34),
-    // The ink line has to stay VISIBLE against a dark page. Left at near-black
-    // it reads fine inside the figure but the outer silhouette merges into the
-    // background and the character loses its edge entirely.
-    stroke: floorLight(c.stroke, 32),
+    // The ink line INVERTS in dark mode. Lifting near-black to a mid grey was
+    // a half-measure that just looked washed out — line art on a dark ground
+    // is drawn in light ink, the same way it is drawn in dark ink on paper.
+    stroke: '#EFEBE1',
   }
 }
 

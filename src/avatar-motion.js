@@ -179,8 +179,12 @@ export class AvatarMotion extends HTMLElement {
         }
         .aura { position: absolute; inset: 0; pointer-events: none; }
         svg { position: relative; display: block; width: 100%; height: 100%; }
-        .am-eye { fill: var(--am-eye, ${built.colors.stroke}); }
-        .am-mouth { fill: var(--am-mouth, ${built.colors.stroke}); }
+        /* The OUTLINE inverts in dark mode, but the eyes and mouth must not:
+           they are filled features sitting on a mid-tone face, and in light ink
+           they read as blank holes rather than as eyes. They stay dark in both
+           themes, which is also what makes the face legible at chip size. */
+        .am-eye { fill: var(--am-eye, ${dark ? '#191c22' : built.colors.stroke}); }
+        .am-mouth { fill: var(--am-mouth, ${dark ? '#191c22' : built.colors.stroke}); }
 
         /* Top RIGHT, not top centre. Humation hair is tall and centred, so a
            centred emblem lands in it on half the heads; the upper right corner
