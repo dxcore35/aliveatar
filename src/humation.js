@@ -265,10 +265,14 @@ export function darkColors(c, kind = 'agent') {
     hair: human ? floorLight(c.hair, 40) : lift(c.hair, 42, 18),
     bottom: lift(c.bottom, 40, 24),
     clothes: lift(c.clothes, 46, 34),
-    // The ink line INVERTS in dark mode. Lifting near-black to a mid grey was
-    // a half-measure that just looked washed out — line art on a dark ground
-    // is drawn in light ink, the same way it is drawn in dark ink on paper.
-    stroke: '#EFEBE1',
+    // The ink line stays DARK in both themes.
+    //
+    // Two alternatives were tried and both were worse: lifting it to a mid grey
+    // looked washed out, and inverting it to a light ink turned the figure into
+    // a sticker outline. What actually separates the character from a dark page
+    // is its own colour — the skin, the hair, the outfit — not a bright edge
+    // around it, and the dark line is what keeps the drawing crisp inside.
+    stroke: floorLight(c.stroke, 14),
   }
 }
 
