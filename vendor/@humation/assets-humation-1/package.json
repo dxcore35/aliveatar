@@ -1,0 +1,77 @@
+{
+  "name": "@humation/assets-humation-1",
+  "version": "1.0.1",
+  "type": "module",
+  "description": "Humation 1 avatar manifest and SVG assets.",
+  "license": "MIT",
+  "homepage": "https://github.com/endo-yusuke/humation#readme",
+  "bugs": {
+    "url": "https://github.com/endo-yusuke/humation/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/endo-yusuke/humation.git",
+    "directory": "packages/assets-humation-1"
+  },
+  "keywords": [
+    "avatar",
+    "svg",
+    "humation",
+    "illustration",
+    "assets",
+    "user-icon",
+    "profile-picture",
+    "hand-drawn",
+    "kawaii",
+    "character"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./embedded": {
+      "types": "./dist/embedded.d.ts",
+      "import": "./dist/embedded.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "import": "./dist/manifest.js"
+    },
+    "./manifest-json": {
+      "types": "./dist/manifest-json.d.ts",
+      "import": "./dist/manifest-json.js"
+    },
+    "./manifest.json": "./manifest.json",
+    "./assets/*": "./assets/*"
+  },
+  "files": [
+    "assets",
+    "dist",
+    "LICENSE.md",
+    "manifest.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit --incremental false"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@humation/core": "1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,419 @@
+// Wiring for the draft page. No framework — the point of the draft is that the
+// merged avatar is a plain custom element you can drop anywhere.
+import './avatar-motion.js'
+import { buildAvatar, PARTS } from './humation.js'
+import { EXPRESSION_NAMES, RINGS } from './expressions.js'
+import { POOLS, BLINK, EXPR_CADENCE, MOTION, STATE_GROUPS, STATE_NOTES, TOOL_SCRIPTS } from './states.js'
+import { STATES } from './states.js'
+import { activeCount, totalCount } from './core/ticker.js'
+import { iconSvg, ICON_NAMES } from './render/icons.js'
+import { emblemFor } from './render/emblem.js'
+
+const $ = (id) => document.getElementById(id)
+const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
+
+// ── The two stage avatars ───────────────────────────────────────────────────
+// Two avatars, same seed, same state, one per theme — driven as a pair so a
+// bug that only shows in one theme cannot hide.
+const live = document.createElement('avatar-motion')
+live.style.cssText = 'width:100%;height:100%'
+live.setAttribute('theme', 'dark')
+$('box-live').appendChild(live)
+
+const lightTwin = document.createElement('avatar-motion')
+lightTwin.style.cssText = 'width:100%;height:100%'
+lightTwin.setAttribute('theme', 'light')
+// Both panels get the aura. It behaves differently against a light page than a
+// dark one, which is exactly the thing this comparison exists to show.
+$('box-light').appendChild(lightTwin)
+
+/** Mirror an attribute onto the light twin. */
+function mirror(name, value) {
+  if (value === null || value === undefined) lightTwin.removeAttribute(name)
+  else lightTwin.setAttribute(name, value)
+}
+
+/** Copy whoever the dark avatar currently is onto the twin. */
+function syncTwin() {
+  for (const a of ['seed', 'kind', 'color', 'gender', 'state', 'emblem']) {
+    mirror(a, live.getAttribute(a))
+  }
+}
+
+/** Run the same call on both avatars, so the comparison stays honest. */
+function both(fn) {
+  fn(live)
+  fn(lightTwin)
+}
+
+function currentConfig() {
+  const cfg = {
+    seed: $('seed').value.trim() || 'avatar',
+    kind: $('kind').value,
+    color: $('color').value,
+    gender: $('gender').value || undefined,
+    selections: {},
+  }
+  for (const slot of SLOTS) {
+    const v = $(`part-${slot}`)?.value
+    if (v) cfg.selections[slot] = v
+  }
+  return cfg
+}
+
+function rebuild() {
+  const cfg = currentConfig()
+  live.setAttribute('emblem', $('emblem').value)
+  if ($('look').checked) live.removeAttribute('flat')
+  else live.setAttribute('flat', '')
+  if ($('aura').checked) live.removeAttribute('no-aura')
+  else live.setAttribute('no-aura', '')
+  live.setAttribute('seed', cfg.seed)
+  live.setAttribute('kind', cfg.kind)
+  live.setAttribute('color', cfg.color)
+  if (cfg.gender) live.setAttribute('gender', cfg.gender)
+  else live.removeAttribute('gender')
+  for (const slot of SLOTS) {
+    if (cfg.selections[slot]) live.setAttribute(slot, cfg.selections[slot])
+    else live.removeAttribute(slot)
+  }
+
+  // Mirror everything onto the light twin except the theme itself.
+  mirror('emblem', $('emblem').value)
+  mirror('flat', $('look').checked ? null : '')
+  mirror('seed', cfg.seed)
+  mirror('kind', cfg.kind)
+  mirror('color', cfg.color)
+  mirror('gender', cfg.gender ?? null)
+  for (const slot of SLOTS) mirror(slot, cfg.selections[slot] ?? null)
+
+  // The component rebuilds itself on those attribute changes; re-apply the
+  // sliders afterwards so the fresh engine starts where the UI says it is.
+  applyControls()
+
+  const built = buildAvatar(cfg)
+  $('r-cut').textContent = String(built.strippedEyes)
+  showGeometry(built.face)
+  $('kind-note').textContent =
+    cfg.kind === 'customer'
+      ? 'A person: the eyes stay stuck on the face and only slide a little. No spinning, no tool bubbles, natural eye size.'
+      : 'An AI: taller drawn eyes, the full head rotation, and tool calls that put glasses on and run the outfit colour.'
+  $('turn').min = cfg.kind === 'customer' ? '-14' : '-110'
+  $('turn').max = cfg.kind === 'customer' ? '14' : '110'
+  $('gaze-note').textContent =
+    `Gaze range on this face: ±${built.face.gazeXMax.toFixed(2)} horizontally, ` +
+    `±${built.face.gazeYMax.toFixed(2)} vertically — kept as the gist's ratio of eye separation (${built.face.separation.toFixed(2)}).`
+  const frontDeg = (-(built.face.slots[0].baseLongitude + built.face.slots[1].baseLongitude) / 2 * 180) / Math.PI
+  $('front-angle').textContent = `${frontDeg > 0 ? '+' : ''}${frontDeg.toFixed(0)}°`
+}
+
+function showGeometry(face) {
+  $('geom-facts').innerHTML = [
+    [`cx ${face.cx.toFixed(2)} · cy ${face.cy.toFixed(2)} · r ${face.radius.toFixed(2)}`, 'head sphere, in the 88-unit avatar box'],
+    [face.slots.map((s) => `${((s.baseLongitude * 180) / Math.PI).toFixed(1)}°`).join('  /  '), 'resting longitude of each eye'],
+    [`${face.separation.toFixed(2)} units`, 'eye separation'],
+    [`${(face.slots[0].halfW * 2).toFixed(2)} × ${(face.slots[0].halfH * 2).toFixed(2)}`, 'size of one baked eye box'],
+  ]
+    .map(([code, label]) => `<div class="fact"><code>${code}</code>${label}</div>`)
+    .join('')
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+function applyControls() {
+  both((av) => {
+    const e = av.engine
+    if (!e) return
+    e.stiffness = Number($('spring').value)
+    e.manualGaze = { x: Number($('gx').value), y: Number($('gy').value) }
+    // The demo drives the turn itself; do not overwrite it from the slider.
+    if (!live.hasAttribute('demo')) e.manualTurn = (Number($('turn').value) * Math.PI) / 180
+    e.eyeScale = Number($('scale').value)
+    e.emphasis = $('emphasis').checked
+    e.autoBlink = $('auto-blink').checked
+    e.autoExpression = $('auto-expr').checked
+    e.autoMotion = $('auto-motion').checked
+  })
+  if ($('mouse').checked) both((a) => a.setAttribute('mouse-interactive', ''))
+  else both((a) => a.removeAttribute('mouse-interactive'))
+
+  $('o-spring').textContent = Number($('spring').value).toFixed(1)
+  $('o-gx').textContent = Number($('gx').value).toFixed(2)
+  $('o-gy').textContent = Number($('gy').value).toFixed(2)
+  $('o-turn').textContent = `${$('turn').value}°`
+  $('o-scale').textContent = `${Number($('scale').value).toFixed(2)}×`
+}
+
+for (const id of ['spring', 'gx', 'gy', 'turn', 'scale', 'emphasis', 'auto-blink', 'auto-expr', 'auto-motion', 'mouse']) {
+  $(id).addEventListener('input', applyControls)
+}
+for (const id of ['seed', 'kind', 'color', 'gender', 'emblem', 'look', 'aura']) {
+  $(id).addEventListener('input', rebuild)
+}
+
+$('btn-blink').onclick = () => both((a) => a.blink())
+$('btn-spin').onclick = () => both((a) => a.spin(1))
+$('btn-mount').onclick = () => both((a) => a.remount())
+let toolIndex = 0
+$('btn-tool').onclick = () => {
+  if ($('kind').value === 'customer') {
+    $('demo-note').textContent = 'Tool calls are an agent thing — switch Kind to agent.'
+    return
+  }
+  const call = TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length]
+  both((a) => a.runTool(call, 4200))
+}
+
+// ── Live microphone ─────────────────────────────────────────────────────────
+// The real test of the speech path: speak, and both avatars mouth it. The
+// stream goes in exactly where a LiveKit track would, so if this works, that
+// works.
+let micStream = null
+$('btn-mic').onclick = async () => {
+  const on = $('btn-mic').getAttribute('aria-pressed') === 'true'
+  if (on) {
+    micStream?.getTracks().forEach((t) => t.stop())
+    micStream = null
+    both((a) => a.send({ type: 'speech.stop' }))
+    $('btn-mic').setAttribute('aria-pressed', 'false')
+    $('btn-mic').textContent = '🎤 Speak into it'
+    $('mic-level').style.width = '0%'
+    return
+  }
+  try {
+    // The click IS the user gesture browsers require before opening a mic or
+    // starting an AudioContext.
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    })
+  } catch (err) {
+    $('mic-note').textContent = `Microphone refused: ${err.message}. It needs permission, and a secure context — localhost counts.`
+    return
+  }
+  both((a) => {
+    a.send({ type: 'speech.attach', stream: micStream })
+    a.setState('dictating')
+  })
+  $('btn-mic').setAttribute('aria-pressed', 'true')
+  $('btn-mic').textContent = '■ Stop microphone'
+  $('mic-note').textContent = 'Listening — talk, and watch the mouths.'
+}
+
+// Level meter, so it is obvious whether audio is actually arriving.
+setInterval(() => {
+  if (!micStream) return
+  const lvl = live.speech?.level ?? 0
+  $('mic-level').style.width = `${Math.min(100, lvl * 130).toFixed(0)}%`
+}, 60)
+
+// ── Auto demo ───────────────────────────────────────────────────────────────
+// While the demo runs it owns the state and the turn, so the manual controls
+// for those would just fight it — they are disabled and the sliders follow.
+function setDemo(on) {
+  $('btn-demo').setAttribute('aria-pressed', String(on))
+  $('btn-demo').textContent = on ? '■ Stop demo' : '▶ Auto demo'
+  $('turn').disabled = on
+  if (on) live.startDemo()
+  else {
+    live.stopDemo()
+    $('demo-note').textContent = ''
+    applyControls()
+  }
+}
+$('btn-demo').onclick = () => setDemo($('btn-demo').getAttribute('aria-pressed') !== 'true')
+live.addEventListener('demobeat', (ev) => {
+  // The demo swaps the person between beats — carry that onto the light twin so
+  // the two panels never drift apart.
+  syncTwin()
+  applyControls()
+  $('demo-note').textContent = ev.detail.note
+  document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === ev.detail.state)))
+})
+
+$('btn-reset').onclick = () => {
+  setDemo(false)
+  for (const [id, v] of [['spring', 7], ['gx', 0], ['gy', 0], ['turn', 0], ['scale', 1]]) $(id).value = String(v)
+  for (const id of ['emphasis', 'mouse']) $(id).checked = false
+  for (const id of ['auto-blink', 'auto-expr', 'auto-motion']) $(id).checked = true
+  applyControls()
+}
+$('btn-random').onclick = () => {
+  $('seed').value = `${$('kind').value}:${Math.random().toString(36).slice(2, 9)}`
+  for (const slot of SLOTS) $(`part-${slot}`).value = ''
+  rebuild()
+}
+
+// ── Part pickers ────────────────────────────────────────────────────────────
+$('part-pickers').innerHTML = SLOTS.map(
+  (slot) => `<label class="control">
+      <span class="control-head"><span>${slot}</span></span>
+      <select id="part-${slot}">
+        <option value="">from seed</option>
+        ${PARTS[slot].map((n) => `<option value="${n}">${n}</option>`).join('')}
+      </select>
+    </label>`,
+).join('')
+for (const slot of SLOTS) $(`part-${slot}`).addEventListener('input', rebuild)
+
+// ── Expression grid ─────────────────────────────────────────────────────────
+$('expr-grid').innerHTML = RINGS.map(
+  (_, i) =>
+    `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}">${String(i).padStart(2, '0')} ${EXPRESSION_NAMES[i]}</button>`,
+).join('')
+$('expr-grid').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-expr]')
+  if (!btn) return
+  const i = Number(btn.dataset.expr)
+  $('auto-expr').checked = false
+  applyControls()
+  both((a) => a.setExpression(i))
+})
+
+// ── State picker ────────────────────────────────────────────────────────────
+$('state-groups').innerHTML = STATE_GROUPS.map(
+  (g) => `<div>
+      <div class="group-label">${g.label}</div>
+      <div class="chips">${g.states
+        .map((s) => `<button data-state="${s}" aria-pressed="${s === 'idle'}">${s}</button>`)
+        .join('')}</div>
+    </div>`,
+).join('')
+
+function selectState(state) {
+  if (live.hasAttribute('demo')) setDemo(false)
+  both((a) => a.setState(state))
+  document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === state)))
+  const fmt = (v) => (v ? `${(v[0] / 1000).toFixed(1)}–${(v[1] / 1000).toFixed(1)} s` : 'off')
+  const m = MOTION[state]
+  $('sd-title').textContent = state
+  $('sd-note').textContent = STATE_NOTES[state] || ''
+  $('sd-pool').textContent = POOLS[state].map((i) => `${i} ${EXPRESSION_NAMES[i]}`).join(' · ')
+  $('sd-expr').textContent = fmt(EXPR_CADENCE[state])
+  $('sd-blink').textContent = fmt(BLINK[state])
+  $('sd-motion').textContent = `breathe ${m.breathe} · sway ${m.sway}° · nod ${m.nod} · bounce ${m.bounce} · gaze ${m.gaze}`
+}
+$('state-groups').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-state]')
+  if (btn) selectState(btn.dataset.state)
+})
+
+// ── Readout ─────────────────────────────────────────────────────────────────
+// The frame counter is the honest part of the claim that this is cheap: it
+// counts real frames on a page that is animating every avatar you can see.
+let frames = 0
+let fpsMark = performance.now()
+let fps = 0
+;(function count() {
+  frames++
+  const now = performance.now()
+  if (now - fpsMark > 500) {
+    fps = Math.round((frames * 1000) / (now - fpsMark))
+    frames = 0
+    fpsMark = now
+  }
+  requestAnimationFrame(count)
+})()
+
+setInterval(() => {
+  const e = live.engine
+  if (!e) return
+  $('r-state').textContent = e.state
+  $('r-expr').textContent = String(e.expression).padStart(2, '0')
+  $('r-turn').textContent = `${((e.turn * 180) / Math.PI).toFixed(0)}°`
+  $('r-fps').textContent = String(fps)
+  $('r-active').textContent = String(activeCount())
+  $('r-total').textContent = String(totalCount())
+  $('r-aura').textContent = String(
+    [...document.querySelectorAll('avatar-motion')].filter((a) => a.engine?.auraSlot).length,
+  )
+}, 400)
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+document.querySelector('.tabs').addEventListener('click', (ev) => {
+  const tab = ev.target.closest('.tab')
+  if (!tab) return
+  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t === tab)))
+  document.querySelectorAll('.tab-panel').forEach((p) => {
+    p.hidden = p.id !== `tab-${tab.dataset.tab}`
+  })
+})
+
+// ── Faces ───────────────────────────────────────────────────────────────────
+// One frozen avatar per expression, cropped to the head. Built once and left
+// alone — these are reference plates, not a second animation to pay for.
+$('faces').innerHTML = EXPRESSION_NAMES.map(
+  (name, i) =>
+    `<figure class="figure"><div class="box clickable" data-face="${i}"></div><figcaption>${String(i).padStart(2, '0')} ${name}</figcaption></figure>`,
+).join('')
+for (const box of document.querySelectorAll('[data-face]')) {
+  const i = Number(box.dataset.face)
+  const el = document.createElement('avatar-motion')
+  el.className = 'headcrop'
+  el.setAttribute('seed', 'agent:reception-01')
+  el.setAttribute('color', '#3B82F6')
+  el.setAttribute('no-mount', '')
+  box.appendChild(el)
+  requestAnimationFrame(() => {
+    const e = el.engine
+    if (!e) return
+    e.autoMotion = false
+    e.autoExpression = false
+    e.autoBlink = false
+    e.setExpression(i)
+    e.morph = 1
+    e.velocity = 0
+    e.manualTurn = 0
+  })
+  box.addEventListener('click', () => {
+    $('auto-expr').checked = false
+    applyControls()
+    both((a) => a.setExpression(i))
+  })
+}
+
+// ── Emblem sheets ───────────────────────────────────────────────────────────
+$('iconsheet').innerHTML = ICON_NAMES.map(
+  (name) => `<div class="iconcell">${iconSvg(name, { size: 30 })}<span>${name}</span></div>`,
+).join('')
+
+$('emblemsheet').innerHTML = STATES.map((state) => {
+  const [icon] = emblemFor(state, 'icon')
+  const [glyph] = emblemFor(state, 'emoji')
+  if (!icon && !glyph) return ''
+  return `<div class="iconcell">${iconSvg(icon, { size: 26 })}<span class="glyph">${glyph || ''}</span><span>${state}</span></div>`
+}).join('')
+
+// ── Crowd ───────────────────────────────────────────────────────────────────
+const CROWD = [
+  ['agent:reception-01', 'agent', '#3B82F6', 'listening'],
+  ['agent:triage-02', 'agent', '#16A34A', 'thinking'],
+  ['agent:booking-03', 'agent', '#9333EA', 'working'],
+  ['agent:sales-04', 'agent', '#E36F3D', 'excited'],
+  ['customer:1042', 'customer', '', 'curious'],
+  ['customer:2277', 'customer', '', 'happy'],
+  ['customer:3391', 'customer', '', 'confused'],
+  ['customer:4810', 'customer', '', 'sleeping'],
+  ['agent:night-05', 'agent', '#0E7490', 'drowsy'],
+  ['agent:alarm-06', 'agent', '#BE185D', 'alerting'],
+  ['customer:5523', 'customer', '', 'suspicious'],
+  ['customer:6634', 'customer', '', 'laughing'],
+]
+$('gallery').innerHTML = CROWD.map(
+  ([seed, kind, color, state]) =>
+    `<figure class="figure"><div class="box" data-crowd="${seed}|${kind}|${color}|${state}"></div><figcaption>${state}</figcaption></figure>`,
+).join('')
+for (const box of document.querySelectorAll('[data-crowd]')) {
+  const [seed, kind, color, state] = box.dataset.crowd.split('|')
+  const el = document.createElement('avatar-motion')
+  el.style.cssText = 'width:100%;height:100%'
+  el.setAttribute('seed', seed)
+  el.setAttribute('kind', kind)
+  if (color) el.setAttribute('color', color)
+  el.setAttribute('state', state)
+  box.appendChild(el)
+  box.addEventListener('pointerenter', () => el.setAttribute('mouse-interactive', ''))
+  box.addEventListener('pointerleave', () => el.removeAttribute('mouse-interactive'))
+}
+
+// ── Go ──────────────────────────────────────────────────────────────────────
+rebuild()
+selectState('idle')

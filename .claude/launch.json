@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "avatar-motion",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["tools/serve.js"],
+      "port": 4321
+    }
+  ]
+}

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>avatar-motion — Humation person + GrokBot face engine</title>
+    <style>
+      :root {
+        --page: #f1efe8;
+        --card: #fffdf7;
+        --fg: #171813;
+        --muted: #6e7067;
+        --soft: #ebe8de;
+        --border: #d5d1c5;
+        --primary: #2f66e8;
+        --on-primary: #ffffff;
+        --accent: #e36f3d;
+        --mono: 'SF Mono', ui-monospace, Menlo, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #11130f;
+          --card: #1c1f19;
+          --fg: #f3f0e7;
+          --muted: #a5a89d;
+          --soft: #292c25;
+          --border: #393d33;
+          --primary: #6f96ff;
+          --on-primary: #0c1630;
+          --accent: #ff8b5e;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px 24px 64px;
+        background: var(--page);
+        color: var(--fg);
+        font: 15px/1.5 ui-sans-serif, system-ui, sans-serif;
+      }
+      .frame { max-width: 1340px; margin: 0 auto; display: grid; gap: 18px; }
+      header { border-bottom: 1px solid var(--border); padding-bottom: 16px; display: flex; gap: 28px; align-items: end; justify-content: space-between; flex-wrap: wrap; }
+      h1 { margin: 6px 0 0; font-size: clamp(2rem, 4.5vw, 3.4rem); letter-spacing: -0.04em; line-height: 0.95; font-weight: 600; }
+      .kicker { color: var(--primary); font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; }
+      header p { margin: 0; color: var(--muted); max-width: 46ch; }
+      h2, h3 { margin: 0; font-weight: 600; }
+      h3 { font-size: 0.95rem; }
+      p { margin: 0; }
+      .note { color: var(--muted); font-size: 0.86rem; }
+      code, .mono { font-family: var(--mono); font-size: 0.82em; }
+
+      .shell { display: grid; grid-template-columns: minmax(300px, 0.8fr) minmax(460px, 1.4fr); gap: 18px; align-items: start; }
+      .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: grid; gap: 12px; }
+      .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
+
+      .stage { display: grid; gap: 12px; justify-items: center; }
+      .stage-avatars { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+      .figure { display: grid; gap: 6px; justify-items: center; }
+      .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+      /* Agents carry no background of their own, so the stage supplies the page
+         each theme would put behind them. */
+      .box.theme-dark { background: #14161b; }
+      .box.theme-light { background: #f4f2ec; }
+      .figure figcaption { font-size: 0.76rem; color: var(--muted); font-family: var(--mono); }
+      .readout { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 0.8rem; font-family: var(--mono); }
+      .readout b { color: var(--fg); font-weight: 500; }
+      /* Live microphone level, so it is obvious whether audio is arriving. */
+      .meter { width: 130px; height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--primary); transition: width 60ms linear; }
+
+      .row { display: flex; gap: 8px; flex-wrap: wrap; }
+      button, select, input[type='text'] {
+        font: inherit; color: var(--fg); background: var(--soft);
+        border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+      }
+      button { cursor: pointer; }
+      button.primary, button[aria-pressed='true'] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+      input[type='range'] { width: 100%; }
+      label.control { display: grid; gap: 5px; }
+      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.86rem; }
+      .control-head output { color: var(--primary); font-family: var(--mono); font-size: 0.8rem; }
+      .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.88rem; }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+      .grid5 button { padding: 6px 2px; font-size: 0.7rem; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+      .chips button { border-radius: 999px; padding: 5px 9px; font-size: 0.78rem; background: transparent; color: var(--muted); }
+      .chips button[aria-pressed='true'] { border-color: var(--primary); color: var(--primary); background: transparent; }
+      .group-label { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+      .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+      .tab { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); padding: 9px 12px; }
+      .tab[aria-selected='true'] { border-bottom-color: var(--primary); color: var(--fg); }
+      .tab-panel[hidden] { display: none; }
+      .tab-panel { display: grid; gap: 14px; padding-top: 14px; }
+
+      .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+      .pipe { background: var(--soft); border-radius: 12px; padding: 10px; position: relative; }
+      .pipe span { display: block; color: var(--primary); font-family: var(--mono); font-size: 0.7rem; margin-bottom: 3px; }
+      .pipe strong { font-weight: 600; font-size: 0.86rem; }
+      .pipe:not(:last-child)::after { content: '→'; position: absolute; right: -8px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+      .facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+      .fact { background: var(--soft); border-radius: 11px; padding: 10px; color: var(--muted); font-size: 0.84rem; }
+      .fact code { display: block; color: var(--fg); margin-bottom: 4px; overflow-wrap: anywhere; }
+
+      .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; align-items: start; }
+      .gallery .figure { justify-items: stretch; }
+      .gallery .figure > .box { border-radius: 12px; width: 100%; height: auto; }
+      .gallery figcaption { text-align: center; }
+
+      .iconsheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; }
+      .iconcell { display: grid; gap: 5px; justify-items: center; background: var(--soft); border-radius: 11px; padding: 10px 6px; }
+      .iconcell svg { color: var(--fg); }
+      .iconcell span { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); text-align: center; }
+      .iconcell .glyph { font-size: 24px; line-height: 28px; }
+      /* Head crop: blow the 88-unit avatar up and slide the head into frame. */
+      .headcrop { width: 260%; height: 260%; margin: -53.5% 0 0 -60.8%; }
+      .gallery .figure > .box.clickable { cursor: pointer; }
+
+      @media (max-width: 900px) {
+        .shell { grid-template-columns: 1fr; }
+        .rail { position: static; }
+        .pipeline, .facts, .grid2 { grid-template-columns: 1fr; }
+        .pipe:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -13px; transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <header>
+        <div>
+          <span class="kicker">Draft · merge prototype</span>
+          <h1>avatar&#8209;motion</h1>
+        </div>
+        <p>
+          The modular Humation person from AgentDesk, with the GrokBot face engine
+          driving its eyes. One deterministic character; one live face.
+        </p>
+      </header>
+
+      <div class="shell">
+        <!-- ── Preview rail ────────────────────────────────────────────── -->
+        <div class="rail">
+          <section class="panel stage">
+            <div class="stage-avatars">
+              <figure class="figure">
+                <div class="box theme-dark" id="box-live"></div>
+                <figcaption>dark mode · live</figcaption>
+              </figure>
+              <figure class="figure">
+                <div class="box theme-light" id="box-light"></div>
+                <figcaption>light mode · live</figcaption>
+              </figure>
+            </div>
+            <p class="note" style="text-align:center">
+              Both are the same person, the same seed and the same animation,
+              driven together — so anything that only works in one theme shows up
+              here immediately.
+            </p>
+            <div class="readout">
+              <span>state <b id="r-state">idle</b></span>
+              <span>expr <b id="r-expr">00</b></span>
+              <span>turn <b id="r-turn">0°</b></span>
+              <span>eyes cut <b id="r-cut">2</b></span>
+            </div>
+            <div class="readout">
+              <span><b id="r-fps">–</b> fps</span>
+              <span>animating <b id="r-active">0</b>/<b id="r-total">0</b></span>
+              <span>shaders <b id="r-aura">0</b>/3</span>
+            </div>
+            <p class="note" id="demo-note" style="min-height:1.4em;text-align:center"></p>
+            <div class="row" style="justify-content:center">
+              <button class="primary" id="btn-demo" aria-pressed="false">▶ Auto demo</button>
+              <button id="btn-blink">Blink</button>
+              <button id="btn-spin">Spin</button>
+              <button id="btn-mount">Replay mount</button>
+              <button id="btn-tool">Run a tool call</button>
+              <button id="btn-reset">Reset</button>
+            </div>
+            <div class="row" style="justify-content:center;align-items:center;gap:10px">
+              <button id="btn-mic" aria-pressed="false">🎤 Speak into it</button>
+              <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
+            </div>
+            <p class="note" id="mic-note" style="text-align:center">
+              Turn the microphone on and talk — both avatars will mouth what you
+              say, from the waveform. This is the same path a LiveKit track takes.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h3>Who</h3>
+            <div class="grid2">
+              <label class="control">
+                <span class="control-head"><span>Seed</span></span>
+                <input type="text" id="seed" value="agent:reception-01" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>Kind</span></span>
+                <select id="kind">
+                  <option value="agent">agent — AI mascot</option>
+                  <option value="customer">customer — person</option>
+                </select>
+              </label>
+              <label class="control">
+                <span class="control-head"><span>Agent colour</span></span>
+                <input type="color" id="color" value="#3B82F6" style="height:36px;padding:2px" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>Gender</span></span>
+                <select id="gender">
+                  <option value="">unset</option>
+                  <option value="female">female</option>
+                  <option value="male">male</option>
+                </select>
+              </label>
+            </div>
+            <p class="note" id="kind-note"></p>
+            <div class="grid2" id="part-pickers"></div>
+            <button id="btn-random">Random person</button>
+          </section>
+        </div>
+
+        <!-- ── Content rail ────────────────────────────────────────────── -->
+        <main>
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" aria-selected="true" data-tab="drive">Drive</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="states">States</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="faces">Faces</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="emblems">Emblems</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="crowd">Crowd</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="how">How it merges</button>
+          </div>
+
+          <section class="tab-panel" id="tab-drive" role="tabpanel">
+            <section class="panel">
+              <h3>Expression</h3>
+              <p class="note">
+                Each button loads two 48-point eye rings. The face springs from
+                where it is to the new shape — it never cuts.
+              </p>
+              <div class="grid5" id="expr-grid"></div>
+              <label class="control">
+                <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
+                <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
+              </label>
+            </section>
+
+            <section class="panel">
+              <h3>Gaze</h3>
+              <label class="control">
+                <span class="control-head"><span>Horizontal</span><output id="o-gx">0.00</output></span>
+                <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>Vertical</span><output id="o-gy">0.00</output></span>
+                <input type="range" id="gy" min="-1" max="1" step="0.01" value="0" />
+              </label>
+              <div class="switch">
+                <label for="mouse">Eyes follow the pointer</label>
+                <input type="checkbox" id="mouse" />
+              </div>
+              <p class="note" id="gaze-note"></p>
+            </section>
+
+            <section class="panel">
+              <h3>Head turn &amp; depth</h3>
+              <label class="control">
+                <span class="control-head"><span>Turn</span><output id="o-turn">0°</output></span>
+                <input type="range" id="turn" min="-110" max="110" step="1" value="0" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>Eye size</span><output id="o-scale">1.00×</output></span>
+                <input type="range" id="scale" min="0.3" max="2" step="0.02" value="1" />
+              </label>
+              <div class="switch"><label for="emphasis">Emphasis (bigger eyes)</label><input type="checkbox" id="emphasis" /></div>
+              <p class="note">
+                The Humation face is drawn in three-quarter view, so it starts
+                already turned. Around <b id="front-angle">+27°</b> the eyes reach a
+                straight-on pose; past about ±90° each eye slips behind the head
+                and hides.
+              </p>
+            </section>
+
+            <section class="panel">
+              <h3>Look</h3>
+              <p class="note">
+                Everything here is drawn once and then costs nothing per frame —
+                the texture is a tiled image, not a filter, and the shading is
+                duplicated paths, not an offscreen buffer.
+              </p>
+              <div class="switch"><label for="look">Lighting, texture and grain</label><input type="checkbox" id="look" checked /></div>
+              <div class="switch"><label for="aura">Agent aura (WebGL shader)</label><input type="checkbox" id="aura" checked /></div>
+              <label class="control">
+                <span class="control-head"><span>Emblem over the head</span></span>
+                <select id="emblem">
+                  <option value="icon">drawn icon set</option>
+                  <option value="auto">emoji</option>
+                  <option value="item">Humation hat / pet</option>
+                  <option value="off">nothing</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="panel">
+              <h3>Automation</h3>
+              <div class="switch"><label for="auto-blink">Blink on the state's cadence</label><input type="checkbox" id="auto-blink" checked /></div>
+              <div class="switch"><label for="auto-expr">Rotate expressions from the state's pool</label><input type="checkbox" id="auto-expr" checked /></div>
+              <div class="switch"><label for="auto-motion">Breathe, sway, nod, wander</label><input type="checkbox" id="auto-motion" checked /></div>
+              <p class="note">A blink takes 320 ms: 42 % closing, 58 % opening, never fully flat (4 % floor).</p>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="tab-states" role="tabpanel" hidden>
+            <section class="panel">
+              <h3>39 states</h3>
+              <p class="note">
+                A state is not one face. It names a pool of expressions, how often
+                to swap between them, how often to blink, and how the body moves.
+              </p>
+              <div id="state-groups" style="display:grid;gap:12px"></div>
+            </section>
+            <section class="panel">
+              <h3 id="sd-title">idle</h3>
+              <p class="note" id="sd-note"></p>
+              <div class="facts">
+                <div class="fact"><code id="sd-pool">—</code>expression pool</div>
+                <div class="fact"><code id="sd-expr">—</code>expression change</div>
+                <div class="fact"><code id="sd-blink">—</code>blink cadence</div>
+                <div class="fact"><code id="sd-motion">—</code>body motion</div>
+              </div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="tab-faces" role="tabpanel" hidden>
+            <section class="panel">
+              <h3>All 25 expressions, held still</h3>
+              <p class="note">
+                Same person, same seed, cropped to the head. Each face is eight
+                numbers per eye plus four for the mouth — nothing is drawn by
+                hand. Click one to send it to the stage.
+              </p>
+              <div class="gallery" id="faces"></div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="tab-emblems" role="tabpanel" hidden>
+            <section class="panel">
+              <h3>The drawn icon set</h3>
+              <p class="note">
+                Drawn here rather than vendored. A licence survey turned up two
+                clean options (Phosphor and Fluent Emoji, both MIT) and a longer
+                list to avoid — but neither would match the avatar's line. These
+                are composed from shared primitives, so one stroke width governs
+                the whole set, and the project carries no asset licence at all.
+              </p>
+              <div class="iconsheet" id="iconsheet"></div>
+            </section>
+            <section class="panel">
+              <h3>What each state shows</h3>
+              <p class="note">Icons and emoji carry the same meanings and the same motion, so switching between them changes nothing but the artwork.</p>
+              <div class="iconsheet" id="emblemsheet"></div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="tab-crowd" role="tabpanel" hidden>
+            <section class="panel">
+              <h3>Different people, different states, one engine</h3>
+              <p class="note">
+                Every tile is its own seed and its own state, animating
+                independently. Hover a tile to make those eyes follow you.
+              </p>
+              <div class="gallery" id="gallery"></div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="tab-how" role="tabpanel" hidden>
+            <section class="panel">
+              <h3>What each side brings</h3>
+              <div class="facts">
+                <div class="fact"><code>Humation → identity</code>Modular parts (head, body, bottom, item, glasses) picked from a seed, recoloured per entity. Deterministic: the same id is always the same person.</div>
+                <div class="fact"><code>GrokBot → life</code>Spring morphs between eye shapes, blink curve, gaze clamp, spherical eye projection, and a state machine of expression pools and cadences.</div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>The seam</h3>
+              <p class="note">
+                Humation's eyes are two little paths baked into the head drawing.
+                Every one of the 24 head parts draws them at the <em>same</em> two
+                boxes, which is what makes the swap safe: cut those two paths, then
+                measure them to recover the sphere the engine needs.
+              </p>
+              <div class="pipeline">
+                <div class="pipe"><span>01</span><strong>Compose</strong><p class="note">seed → parts + palette</p></div>
+                <div class="pipe"><span>02</span><strong>Cut</strong><p class="note">remove 2 baked eyes</p></div>
+                <div class="pipe"><span>03</span><strong>Measure</strong><p class="note">skin box → sphere</p></div>
+                <div class="pipe"><span>04</span><strong>Project</strong><p class="note">rings onto sphere</p></div>
+                <div class="pipe"><span>05</span><strong>Draw</strong><p class="note">d + transform per frame</p></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>Measured on this avatar</h3>
+              <div class="facts" id="geom-facts"></div>
+            </section>
+
+            <section class="panel">
+              <h3>Ported unchanged from the gist</h3>
+              <div class="facts">
+                <div class="fact"><code>blink(t) = close 42 % → open 58 %, floor 0.04</code>320 ms, closing faster than opening.</div>
+                <div class="fact"><code>v += (−2ζωv − ω²(x − target)) dt</code>Expression morph is a damped spring, not a linear tween.</div>
+                <div class="fact"><code>longitude = asin(offset / radius) + turn</code>Each eye keeps its own resting angle on the head.</div>
+                <div class="fact"><code>scaleX = cos(longitude) / cos(longitude₀)</code>Eyes narrow as they rotate away, and hide past the horizon.</div>
+                <div class="fact"><code>pointer clamped to ±0.6</code>The gaze can never reach the edge of the face.</div>
+                <div class="fact"><code>POOLS · BLINK · EXPR_CADENCE</code>All 39 state rows copied as-is.</div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>What makes it read as real</h3>
+              <p class="note">
+                Almost none of this is expensive. The ordering below is by how
+                much each one changes the impression, not by how much it costs.
+              </p>
+              <div class="facts">
+                <div class="fact"><code>saccades, not glides</code>Real eyes are still, then JUMP, then still. A saccade takes 30–80 ms and its duration scales with distance. Smoothly gliding eyes are the single most uncanny thing an avatar can do — this is the biggest change of the lot.</div>
+                <div class="fact"><code>microsaccades and drift</code>During a fixation the eye is never actually still. A ~0.02 tremor every few hundred milliseconds, plus a slow drift.</div>
+                <div class="fact"><code>the head lags the eyes</code>A look starts with the eyes; the head follows on a spring and the eyes then roll back towards centre. That lag is what makes a glance read as intentional.</div>
+                <div class="fact"><code>blinks that are not a metronome</code>Intervals are clustered, not uniform. One in seven is a double, one in six is a half-lid, and a big saccade drags a blink along with it.</div>
+                <div class="fact"><code>breath is not a sine</code>Quick inhale, catch at the top, slower exhale, pause at the bottom — and the weight shift runs on a completely different clock so the two never line up into one loop.</div>
+                <div class="fact"><code>lids follow the gaze</code>Looking down lowers the upper lid. Without it, a downward glance reads as a stare.</div>
+                <div class="fact"><code>squash and stretch</code>A hop stretches on the way up and squashes on landing, and the contact shadow tightens as the figure leaves the ground.</div>
+                <div class="fact"><code>every face is its own</code>Eye spacing, size, aspect, corner tilt, mouth height, lid weight, blink rate and fidget level are all drawn from the seed. Two avatars sharing a hairstyle no longer share a face.</div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>The look pass, and what it costs</h3>
+              <div class="facts">
+                <div class="fact"><code>one light, whole figure</code>The five Humation colour variables are repainted as gradients in USER space, so head, body and legs are lit by one light instead of each shape shading itself.</div>
+                <div class="fact"><code>texture is an image, not a filter</code>Grain, twill and hair strands are generated once into a canvas at load and tiled. An SVG filter would re-run every time the face moved; a tiled image costs a composite and nothing else.</div>
+                <div class="fact"><code>shading is duplicated paths</code>Occlusion under the hairline and a rim on the far edge are the same path drawn again with a translucent gradient. No offscreen buffer.</div>
+                <div class="fact"><code>a contact shadow</code>One soft ellipse under the feet. Nothing in the source art sits on anything, which is most of why a flat avatar reads as a sticker.</div>
+                <div class="fact"><code>one shader, hard limits</code>The aura is real WebGL, capped at three live contexts for the whole page, 144×144 regardless of display size, 30 fps, skipped when flat, and released the moment the avatar scrolls off screen.</div>
+                <div class="fact"><code>one loop for everybody</code>Fifty avatars share ONE requestAnimationFrame. Physics runs at a fixed 120 Hz so springs settle identically on any display, off-screen avatars stop, a hidden tab stops, and reduced-motion is obeyed and watched.</div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>An AI does not move like a person</h3>
+              <p class="note">
+                Both kinds run the same engine; the profile decides how far it is
+                allowed to go. You should be able to tell which one you are
+                looking at without reading a label.
+              </p>
+              <div class="facts">
+                <div class="fact"><code>customer · eyes stay on the face</code>The head turn only slides the eyes a little, never rotates them around the skull, and never narrows them. Capped at ±14°. Natural eye size, no theatrics.</div>
+                <div class="fact"><code>agent · the full sphere</code>Eyes travel around the head and disappear past the horizon. Taller, more drawn eyes (1.22 × 1.62). Sway reaches further. Spin is allowed.</div>
+                <div class="fact"><code>agent · tool calls</code>Running a tool puts glasses on the face, floats a bubble with the call and its result, and runs the outfit colour around the hue wheel until the call returns.</div>
+                <div class="fact"><code>the mouth</code>Humation draws none, so it is generated: four numbers per expression, plus a talk oscillation for the states where the avatar is actually speaking.</div>
+                <div class="fact"><code>the companion animal</code>The cat on the head blinks on its own clock — never in step with its owner, because two faces blinking together look mechanical — and naps when the person is asleep.</div>
+                <div class="fact"><code>the arrival</code>A new avatar springs up from small and low with its eyes shut, then opens them. Without it the first second reads as a static image.</div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>Changed on purpose</h3>
+              <div class="facts">
+                <div class="fact"><code>Expressions are generated, not stored</code>Eight numbers per eye instead of 96 raw coordinates — so the same face fits a 4.5-unit Humation head as well as a 49-unit blob, and a new expression is one readable line.</div>
+                <div class="fact"><code>18 blob shapes → Humation part slots</code>The gist's silhouette axis becomes the modular person: 24 heads × 8 bodies × 8 bottoms × 43 items × 3 glasses.</div>
+                <div class="fact"><code>MOTION table added</code>A person needs breathing, sway, nodding and self-directed gaze; a floating blob did not.</div>
+                <div class="fact"><code>Head counter-shift</code>The head art is still, so a turn nudges the whole head group — otherwise the eyes look like they are sliding across a frozen face.</div>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./src/lab.js"></script>
+  </body>
+</html>

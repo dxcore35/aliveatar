@@ -1,0 +1,6 @@
+# Raw capture frames — the built GIF in docs/ is what the README uses.
+docs/frames/
+
+node_modules/
+.DS_Store
+*.log

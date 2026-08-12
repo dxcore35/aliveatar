@@ -1,0 +1,11 @@
+{
+  "name": "avatar-motion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Humation modular person avatars + the GrokBot face-motion engine, merged.",
+  "scripts": {
+    "bake": "bun tools/bake-humation.js",
+    "dev": "bun tools/serve.js"
+  }
+}
