@@ -96,6 +96,23 @@ export const SKULL_SHAPES = {
       return superellipse(t, 3.4) * (1 - 0.3 * low * low)
     },
   },
+  triangle: {
+    label: 'triangle',
+    note: 'Flat brow, pointed chin. The most extreme of the set.',
+    // Point DOWN, so the vertex is a chin and the flat edge is a brow. A
+    // triangle the other way up puts a spike where the crown is, and the hair
+    // — which is drawn wider than the skull on every head — simply hides it,
+    // so it reads as a head with a wedge taken out of the jaw.
+    //
+    // The vertices of `polygon` sit where (t + turn) is a multiple of the
+    // segment. Wanting one at t = π/2 (straight down, in SVG's y-down space)
+    // gives turn = π/6.
+    //
+    // Rounded slightly toward a circle. A true 3-gon comes to a mathematical
+    // point at the chin, and at avatar size that is not a sharp jaw — it is a
+    // spike, and it reads as a rendering fault rather than a face.
+    r: (t) => polygon(t, 3, Math.PI / 6) * 0.88 + 0.12,
+  },
   blob: {
     label: 'blob',
     note: 'Soft and asymmetric, different for every seed.',
