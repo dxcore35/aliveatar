@@ -40,7 +40,7 @@ const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
 export class AvatarMotion extends HTMLElement {
   static observedAttributes = [
     'seed', 'kind', 'color', 'gender', 'state', 'mouse-interactive', 'transparent-bg',
-    'demo', 'no-mount', 'no-aura', 'flat', 'emblem', 'background', 'theme', 'age', ...SLOTS,
+    'demo', 'no-mount', 'no-aura', 'flat', 'emblem', 'background', 'theme', 'age', 'skull', ...SLOTS,
   ]
 
   connectedCallback() {
@@ -125,6 +125,9 @@ export class AvatarMotion extends HTMLElement {
         // Real data beats a random seed: age drives greying, reading glasses,
         // which clothes are likely, and how fast the person moves.
         age: this.hasAttribute('age') ? Number(this.getAttribute('age')) : undefined,
+        // Generated head shape, agents only. Absent = pick one from the seed;
+        // `none` = keep the head exactly as Humation drew it.
+        skull: this.getAttribute('skull') === 'none' ? false : this.getAttribute('skull') || undefined,
         selections,
         // The SVG's own background rect is always left out. The colour lives on
         // the wrapper instead, so the aura canvas can sit BETWEEN the backdrop
@@ -401,6 +404,9 @@ export class AvatarMotion extends HTMLElement {
   remount() { this.engine?.mount() }
   setState(s) { this.setAttribute('state', s) }
   setExpression(i) { this.engine?.setExpression(i) }
+  /** Play one of bloub's animated eye states by id. See motion/eyeacts.js. */
+  playAct(id) { return this.engine?.playAct(id) ?? false }
+  stopAct() { this.engine?.stopAct() }
   startDemo() { this.setAttribute('demo', '') }
   stopDemo() { this.removeAttribute('demo') }
 }

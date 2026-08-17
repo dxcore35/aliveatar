@@ -22,7 +22,7 @@
 //   squash and stretch on hops, so mass reads
 //   agent theatrics    glasses, hue runs, and the WebGL aura
 // ---------------------------------------------------------------------------
-import { RINGS, MOUTH_RINGS } from './expressions.js'
+import { RINGS, MOUTH_RINGS, EYE_POSE } from './expressions.js'
 import {
   POOLS, BLINK, EXPR_CADENCE, MOTION, TALK, KIND_PROFILE, TOOL_STATES,
   SKIN_MOOD, WARDROBE_STEP_MS, LASER_POSTURE,
@@ -30,6 +30,8 @@ import {
 import { ageProfile, readableSkin } from './humation.js'
 import { Gaze } from './motion/gaze.js'
 import { Blinker, WeightShift, breathCurve } from './motion/body.js'
+import { eyeBasis, headFrame, featureMatrix, blinkScale, rollWobble, separateEyes } from './motion/sphere.js'
+import { ACT_BY_ID, sampleAct, NEUTRAL_ACT } from './motion/eyeacts.js'
 import { acquire, release, hexToRgb } from './gl/aura.js'
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
@@ -87,6 +89,8 @@ export class FaceEngine {
 
     this.mouthPath = svgEl('am-mouth')
     this.paths = [svgEl('am-eye'), svgEl('am-eye')]
+    /** Where each eye landed this frame — the beams fire from here. */
+    this.eyeAt = [null, null]
 
     this.petEyes = opts.petEyes || []
     this.petBlinker = new Blinker()
@@ -97,6 +101,17 @@ export class FaceEngine {
     this.target = RINGS[0]
     this.currentMouth = MOUTH_RINGS[0].map((p) => [p[0], p[1]])
     this.targetMouth = MOUTH_RINGS[0]
+    // Some expressions move the HEAD as well as the eyes (the bloub set does;
+    // the original twenty-five do not). Springing the pose on the same morph
+    // means a mood change turns the head with it instead of snapping it.
+    this.poseFrom = EYE_POSE[0]
+    this.poseTo = EYE_POSE[0]
+    // An eye ACT is a performance with a length, run on top of whatever
+    // expression is showing and then handed back. See motion/eyeacts.js.
+    this.act = null
+    this.actT = 0
+    this.actFrame = NEUTRAL_ACT
+    this.onAct = opts.onAct || null
     this.morph = 1
     this.velocity = 0
     this.stiffness = 7
@@ -194,8 +209,13 @@ export class FaceEngine {
     if (!RINGS[index]) return
     this.current = this.displayedRings()
     this.currentMouth = this.displayedMouth()
+    // Start the new spring from the pose ON SCREEN, not from the pose the last
+    // expression was aiming at. Chaining two changes inside one morph would
+    // otherwise snap the head back to the previous target first.
+    this.poseFrom = this.displayedPose()
     this.target = RINGS[index]
     this.targetMouth = MOUTH_RINGS[index]
+    this.poseTo = EYE_POSE[index] || EYE_POSE[0]
     this.expression = index
     this.morph = 0
     this.velocity = 0
@@ -203,6 +223,30 @@ export class FaceEngine {
 
   blink(depth = 1) {
     this.blinker.fire(depth)
+  }
+
+  /**
+   * Play one of bloub's animated eye states.
+   *
+   * It runs on its own clock over the top of the current expression and lets go
+   * by itself, so nothing has to be restored afterwards and a state change part
+   * way through is not a conflict — the expression underneath keeps its own
+   * spring the whole time.
+   */
+  playAct(id) {
+    const def = ACT_BY_ID.get(id)
+    if (!def) return false
+    this.act = def
+    this.actT = 0
+    this.onAct?.(def)
+    return true
+  }
+
+  stopAct() {
+    if (!this.act) return
+    this.act = null
+    this.actFrame = NEUTRAL_ACT
+    this.onAct?.(null)
   }
 
   mount() {
@@ -239,6 +283,15 @@ export class FaceEngine {
     const motion = this.motionNow()
     const v = this.variation
     const energy = this.reduced ? 0 : (v.energy || 1)
+
+    // Eye act. Sampling returns null the moment it is over, which is what ends
+    // it — an act with no end would hold the face for good.
+    if (this.act) {
+      this.actT += dt
+      const f = this.reduced ? null : sampleAct(this.act, this.actT, this.profile.humanMix ?? 0)
+      if (f) this.actFrame = f
+      else this.stopAct()
+    }
 
     // Expression morph spring.
     const w = this.stiffness
@@ -298,7 +351,14 @@ export class FaceEngine {
       want +=
         (Math.sin((this.clock * 2 * Math.PI) / (motion.swayMs / 1000)) * motion.sway * this.profile.swayScale * Math.PI) /
           180 +
-        this.gaze.headX * 0.5 * this.profile.swayScale
+        // How much a LOOK drags the head round with it.
+        //
+        // This is the only path by which the eyes can move the mouth, and it
+        // has to stay small. At 0.5 (× an agent's 1.5 sway) a glance swung the
+        // head far enough that the MOUTH travelled further than the eyes did —
+        // the face turning to follow its own eyes. The head should lag a look
+        // by a suggestion, not chase it.
+        this.gaze.headX * 0.16 * this.profile.swayScale
     }
     want = clamp(want, -this.profile.turnLimit, this.profile.turnLimit)
     // The head turns slowly and heavily while the beams are up — menace is a
@@ -390,57 +450,141 @@ export class FaceEngine {
     }
 
     // ── Eyes ──────────────────────────────────────────────────────────────
+    //
+    // The eyes are placed by motion/sphere.js — bloub's tangent-frame model,
+    // not the old flat `sin(longitude)` slide. The head now has a real 3D
+    // orientation and each eye gets the sphere's own frame at its own position,
+    // so the lean, the foreshortening and the passage behind the limb are all
+    // consequences of the projection rather than three separate hacks.
     const blink = this.blinker.value()
     const baseScale = this.eyeScale * (this.emphasis ? 1.18 : 1)
     const rings = this.displayedRings()
+    const frame = frameOf(f)
+    const sphere = prof.sphere ?? 1
+    const spherePos = prof.spherePos ?? sphere
 
     // Looking down closes the upper lid a little, looking up opens it. Eyelids
     // ride the eye in people; without this a downward glance looks like staring.
+    // This shapes the EYE (its own vertical extent), so it can open past one.
     const lidFollow = clamp(1 - gy * 0.22 - (v.lidBias || 0), 0.55, 1.25)
+    // The running act, if any. It is a plain multiplier set, so it composes
+    // with the expression rather than replacing it — a wink lands on whatever
+    // mood the face is already wearing.
+    const act = this.actFrame
 
+    // The head's orientation right now. `frame.rest` was recovered from the
+    // Humation art, so at zero deflection every face sits exactly where it was
+    // drawn; each term below is a departure from that pose.
+    // Some expressions carry a head pose of their own — bored looks away, proud
+    // lifts the chin, curious cocks the head. A person shows a mood with less
+    // of their whole head than a machine does, so people take a fraction of it.
+    const pose = this.displayedPose()
+    const pg = prof.moodPose ?? 1
+    // THE HEAD, WITHOUT THE GAZE.
+    //
+    // Everything that actually turns the head: the turn itself, the mood's own
+    // pose, and the act. The gaze is deliberately NOT here — see `head` below.
+    const skull = {
+      yaw: frame.rest.yaw + turn + pose.dYaw * pg + act.dYaw,
+      pitch: frame.rest.pitch + pose.dPitch * pg + act.dPitch,
+    }
+    // THE HEAD AS THE EYES SEE IT — the same head plus the gaze.
+    //
+    // The gaze used to be folded straight into the one head frame, so looking
+    // left rotated the whole skull left and the MOUTH swung with it. Eyes do
+    // not work that way: they rotate in their sockets, inside a head that is
+    // holding still. Splitting the two frames is what makes the mouth
+    // independent of the eyes while still riding along when the head itself
+    // turns — which is the one coupling that is real.
+    const head = {
+      yaw: skull.yaw + gx * frame.yawRange,
+      // Screen y points down and pitch points up, hence the sign.
+      pitch: skull.pitch - gy * frame.pitchRange,
+      // Roll is new. The old engine could not tilt a head at all, and a head
+      // that never rolls is a head bolted to a post. Two sources: the
+      // follow-through from a turn, and a slow wobble that never repeats.
+      roll:
+        frame.rest.roll +
+        this.headLag * 0.05 +
+        pose.dRoll * pg +
+        act.dRoll +
+        (this.autoMotion && !this.reduced ? rollWobble(this.clock, (v.energy || 1) * prof.swayScale) : 0),
+    }
+    // A mood can also set the eyes wider or closer together on the head — that
+    // is a real lever in bloub, and it is not the same as making them bigger.
+    const sp = (1 + (pose.splitScale - 1) * pg) * act.splitScale
+    const offsets = [frame.offsets[0] * sp, frame.offsets[1] * sp, frame.mouthOffset]
+    // Two frames, one head. The eyes ride the gaze-rotated frame; the mouth
+    // rides the skull, which the gaze never touched. Both share the same roll,
+    // so the face still leans as one piece.
+    const eyeB = eyeBasis(head, offsets)
+    const mouthB = eyeBasis({ ...skull, roll: head.roll }, offsets)
+    const basis = [eyeB[0], eyeB[1], mouthB[2]]
+
+    const eyeVis = [1, 1]
     for (let i = 0; i < rings.length; i++) {
       const slot = f.slots[i]
-      const longitude = slot.baseLongitude + turn
-      const depth = Math.cos(longitude)
-      const perspective = Math.max(depth, 0.02) / Math.max(Math.cos(slot.baseLongitude), 0.02)
-
-      let x
-      let squeeze
-      if (prof.turnMode === 'slide') {
-        x = slot.x + f.radius * (Math.sin(longitude) - Math.sin(slot.baseLongitude)) * 0.45 + gazeX
-        squeeze = 1
-      } else {
-        x = f.cx + f.radius * Math.sin(longitude) + gazeX
-        squeeze = perspective
-      }
-      const y = slot.y + gazeY
       const gainW = slot.fitted ? 1 : prof.eyeW
       const gainH = slot.fitted ? 1 : prof.eyeH
       // Firing pulls the eyes down to small hard points — the emitter the beam
       // leaves from. Not shut, because a beam out of a closed eye reads as a
       // mistake; small and open, so you can see where it comes from.
       const aim = 1 - this.laser * 0.62
-      const sx = clamp(squeeze * baseScale, 0.02, 2.4) * slot.halfW * gainW * aim
-      const sy = clamp(blink * baseScale * lidFollow, 0.02, 2.4) * slot.halfH * gainH * (1 - this.laser * 0.72)
-      const tilt = slot.tilt || 0
-
-      const el = this.paths[i]
-      el.setAttribute('d', toPath(rings[i]))
-      el.setAttribute(
-        'transform',
-        `translate(${x.toFixed(3)} ${y.toFixed(3)}) rotate(${tilt.toFixed(2)}) scale(${sx.toFixed(4)} ${sy.toFixed(4)})`,
+      // The blink is a squash of the IMAGE, applied after the tangent frame:
+      // squashing along the eye's own tilted axis would close a leaning eye
+      // diagonally, which no eye does. It is per eye because an act can shut
+      // one and not the other — that is what a wink is.
+      const blinkK = blinkScale(Math.min(blink, act.lid[i]), prof.blinkFloor ?? 0.04)
+      const out = featureMatrix(
+        basis[i],
+        frame.anchor[i],
+        {
+          cx: f.cx,
+          cy: f.cy,
+          radius: f.radius,
+          // The flat fallback is the old placement, kept verbatim: it is what
+          // people blend back towards.
+          flatX:
+            slot.x +
+            f.radius * (Math.sin(slot.baseLongitude + turn) - Math.sin(slot.baseLongitude)) * 0.45 +
+            gazeX,
+          flatY: slot.y + gazeY,
+          region: f.eyeRegion,
+          w: clamp(baseScale * act.w[i], 0.02, 3.2) * slot.halfW * gainW * aim,
+          h: clamp(baseScale * lidFollow * act.h[i], 0.02, 3.2) * slot.halfH * gainH * (1 - this.laser * 0.72),
+          tilt: (((slot.tilt || 0) + act.tilt[i]) * Math.PI) / 180,
+        },
+        blinkK,
+        sphere,
+        spherePos,
       )
-      el.style.opacity = prof.turnMode === 'slide' || depth > 0.02 ? '1' : '0'
+      this.eyeAt[i] = out
+      // Crossing the limb, the eye is on the far side of the head. It fades out
+      // over a narrow band rather than switching off, so it leaves the face
+      // instead of blinking out of it.
+      eyeVis[i] = (1 - sphere + sphere * clamp(basis[i].depth / 0.12, 0, 1)) * act.alpha
     }
 
-    this.drawLaser(f, turn, gazeY)
+    // Two eyes may never become one. Run AFTER both are placed, because it is
+    // the relationship between them that is wrong, not either one on its own —
+    // and skipped when one is most of the way behind the head, where the two
+    // converging is correct perspective rather than a fault.
+    if (this.eyeAt[0] && this.eyeAt[1] && eyeVis[0] > 0.4 && eyeVis[1] > 0.4) {
+      separateEyes(this.eyeAt[0], this.eyeAt[1])
+    }
+
+    for (let i = 0; i < rings.length; i++) {
+      const el = this.paths[i]
+      el.setAttribute('d', toPath(rings[i]))
+      el.setAttribute('transform', this.eyeAt[i].transform)
+      el.style.opacity = eyeVis[i] > 0.995 ? '1' : eyeVis[i].toFixed(3)
+    }
+
+    this.drawLaser(f, head.yaw, gazeY)
 
     // ── Mouth ─────────────────────────────────────────────────────────────
     if (this.mouthPath) {
       const mo = f.mouth
-      const longitude = mo.baseLongitude + turn
-      const depth = Math.cos(longitude)
-      const perspective = Math.max(depth, 0.02) / Math.max(Math.cos(mo.baseLongitude), 0.02)
       // Real audio wins over the idle talk oscillation. When speech is driving
       // the mouth, the expression's own shape is blended out in proportion to
       // how open the mouth is — so a smile survives quiet moments and the jaw
@@ -458,17 +602,40 @@ export class FaceEngine {
             ? 1 + Math.abs(Math.sin((this.clock * 2 * Math.PI) / (talk[1] / 1000))) * talk[0] * 2.2
             : 1
       }
-      const x =
-        prof.turnMode === 'slide'
-          ? mo.x + f.radius * (Math.sin(longitude) - Math.sin(mo.baseLongitude)) * 0.45 + gazeX * 0.3
-          : f.cx + f.radius * Math.sin(longitude) + gazeX * 0.35
-      const y = mo.y + gazeY * 0.3 + breath * 0.12
-      this.mouthPath.setAttribute('d', toPath(this.displayedMouth()))
-      this.mouthPath.setAttribute(
-        'transform',
-        `translate(${x.toFixed(3)} ${y.toFixed(3)}) scale(${(clamp(prof.turnMode === 'slide' ? 1 : perspective, 0.02, 2.4) * mo.halfW * widen).toFixed(4)} ${(mo.halfH * open).toFixed(4)})`,
+      // The mouth is the third feature on the same sphere, so it gets the same
+      // frame the eyes do. That is what keeps it on the face through a turn
+      // instead of sliding across it, and it now leans with the head too.
+      const out = featureMatrix(
+        basis[2],
+        frame.mouthAnchor,
+        {
+          cx: f.cx,
+          cy: f.cy,
+          radius: f.radius,
+          // THE MOUTH DOES NOT FOLLOW THE EYES.
+          //
+          // It used to carry 30 % of the gaze, so glancing left slid the mouth
+          // left — which no face does. Where you look and where your mouth is
+          // are unrelated; the only thing that moves both is the HEAD, and that
+          // arrives through the sphere frame below, exactly as it does for the
+          // eyes. So the mouth stays put relative to the face art it belongs
+          // to, and the nose drawn around it stays put with it.
+          flatX: mo.x + f.radius * (Math.sin(mo.baseLongitude + turn) - Math.sin(mo.baseLongitude)) * 0.45,
+          flatY: mo.y,
+          region: f.mouthRegion,
+          offY: breath * 0.12,
+          w: mo.halfW * widen,
+          h: mo.halfH * open,
+          tilt: 0,
+        },
+        1,
+        sphere,
+        spherePos,
       )
-      this.mouthPath.style.opacity = prof.turnMode === 'slide' || depth > 0.08 ? '1' : '0'
+      this.mouthPath.setAttribute('d', toPath(this.displayedMouth()))
+      this.mouthPath.setAttribute('transform', out.transform)
+      const vis = 1 - sphere + sphere * clamp(basis[2].depth / 0.16, 0, 1)
+      this.mouthPath.style.opacity = vis > 0.995 ? '1' : vis.toFixed(3)
     }
 
     // ── Companion animal ──────────────────────────────────────────────────
@@ -607,7 +774,15 @@ export class FaceEngine {
     const near = Math.abs(m[0]) < 0.4 && Math.abs(m[1] - 1) < 0.01 && Math.abs(m[2] - 1) < 0.01
     if (near) {
       if (this.moodSet) {
-        this.root.style.removeProperty('--hm-skin')
+        // Write the base colour BACK. This used to be `removeProperty`, which
+        // looked right and was not: `this.root` is the composed <svg>, and the
+        // compose-time skin is an inline style on that very element. Removing
+        // the property therefore deleted the avatar's own colour along with the
+        // mood, and nothing ever put it back — so any agent that got angry once
+        // and calmed down went black and stayed black for the rest of the page.
+        // Restoring the floored base is the only thing that returns it to how it
+        // was composed.
+        this.root.style.setProperty('--hm-skin', this.baseColor)
         this.moodSet = false
       }
       return
@@ -722,7 +897,7 @@ export class FaceEngine {
    * as light rather than as a coloured stick. The tips flare, and the whole
    * thing flickers on a fast noise so it never looks like a static wedge.
    */
-  drawLaser(f, turn, gazeY) {
+  drawLaser(f, yaw, gazeY) {
     if (!this.laserGroup) return
     if (this.laser < 0.01) {
       if (this.laserGroup.style.display !== 'none') this.laserGroup.style.display = 'none'
@@ -734,11 +909,11 @@ export class FaceEngine {
     const flick = 0.82 + Math.sin(this.clock * 47) * 0.1 + Math.sin(this.clock * 23.3) * 0.08
     const power = this.laser * flick
 
-    // Fire where the FACE is pointing. The head is drawn in three-quarter view
-    // looking left, so "forward" is the average of the two eyes' resting
-    // longitudes plus whatever the head has turned — not straight out of the
-    // screen, and definitely not upward.
-    const facing = (f.slots[0].baseLongitude + f.slots[1].baseLongitude) / 2 + turn + this.gaze.outX * 0.3
+    // Fire where the FACE is pointing. That is the head's yaw, which already
+    // carries the three-quarter rest pose (the average of the two eyes' resting
+    // longitudes, recovered by headFrame) plus everything the head has done
+    // since — not straight out of the screen, and definitely not upward.
+    const facing = yaw + this.gaze.outX * 0.3
     const dx = Math.sin(facing)
     // Level with the eyes, with a slow scan drifting the beam up and down. A
     // beam pinned exactly flat looks switched on; one that sweeps looks like it
@@ -746,9 +921,14 @@ export class FaceEngine {
     const dy = Math.sin(this.clock * 0.55) * 0.13 + gazeY * 0.06
 
     for (let i = 0; i < 2; i++) {
-      const slot = f.slots[i]
-      const ox = f.cx + f.radius * Math.sin(slot.baseLongitude + turn)
-      const oy = slot.y + gazeY
+      // Fire from where the eye actually landed this frame, not from a second
+      // guess at its position. The eyes are placed by the sphere model now, so
+      // recomputing the origin here would drift away from them the moment the
+      // head pitched or rolled.
+      const at = this.eyeAt[i]
+      if (!at) continue
+      const ox = at.x
+      const oy = at.y
       // Stop just inside the frame rather than running off into nowhere: the
       // beam should reach the edge of the avatar's box and end there.
       const len = rayToBox(ox, oy, dx, dy) * 0.96 * this.laser
@@ -780,6 +960,33 @@ export class FaceEngine {
       lerp(p[1], this.targetMouth[i][1], t),
     ])
   }
+
+  /** The head-pose offset this expression is showing right now, mid-morph. */
+  displayedPose() {
+    const t = clamp(this.morph, 0, 1)
+    const a = this.poseFrom
+    const b = this.poseTo
+    return {
+      dYaw: lerp(a.dYaw, b.dYaw, t),
+      dPitch: lerp(a.dPitch, b.dPitch, t),
+      dRoll: lerp(a.dRoll, b.dRoll, t),
+      splitScale: lerp(a.splitScale, b.splitScale, t),
+    }
+  }
+}
+
+/**
+ * The head frame for a measured face, solved once and kept on the face itself.
+ *
+ * There are two faces per avatar — with glasses and without — and the engine
+ * swaps between them mid-animation, so the cache has to live on the face rather
+ * than on the engine. Solving it per frame is exactly the mistake bloub
+ * documents at length: everything the solver reads is moving sixty times a
+ * second, and the eyes tremble.
+ */
+function frameOf(face) {
+  if (!face.__frame) face.__frame = headFrame(face)
+  return face.__frame
 }
 
 /**

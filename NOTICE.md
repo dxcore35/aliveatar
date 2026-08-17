@@ -13,6 +13,45 @@ package. Everything this project does to it — cutting the baked eyes, measurin
 the head sphere, repainting the fills as lit gradients — is applied at runtime;
 the source assets are not altered.
 
+## bloub — MIT
+
+`src/motion/sphere.js` is a port of the eye engine from **bloub** by Jérémy
+Perret, used under the MIT licence.
+
+- https://github.com/jeremy-prt/bloub — commit `1caf2c55`
+
+A reference copy of that repository is kept read-only in `reference/bloub/`,
+including its `LICENSE`. It is there so the model can be checked against its
+source; nothing in it is imported or built.
+
+`src/motion/eyeacts.js` is a second port from the same repository — the eye
+half of bloub's animated states (`src/bot/states.ts`) and its gaze scripts
+(`src/ui/gaze.ts`). Everything there that belongs to bloub's own BODY — the blob
+collapsing into three dots, the travelling exclamation mark, the orbiting rings,
+the comet — is deliberately not ported; we draw a person, not a blob. Where such
+a state also moved the eyes, that part is here, rewritten as offsets and
+multipliers so it lands on a real face.
+
+The sixteen moods in `src/expressions.js` from index 25 upward come from
+bloub's `src/bot/expressions.ts`, translated the same way.
+
+What was ported is the geometry: the head frame built from yaw/pitch/roll, the
+per-eye tangent frame taken off the sphere and projected orthographically, the
+blink as a screen-space vertical squash applied after that frame, and the
+seamless `loopNoise` drift. What is different here is that bloub owns its head —
+a perfect circle with symmetric eyes and one rest pose measured off a video —
+while ours is Humation artwork in three-quarter view. So the rest pose is not a
+constant: `headFrame()` recovers it from the measured art, and each eye carries
+its own longitude instead of a shared ±split. The eye shapes themselves stay
+this project's parametric rings; bloub's capsules were not adopted.
+
+## Generated skulls
+
+`src/render/skull.js` is original to this project — no third-party geometry. It
+rewrites the single skull path of a Humation head for agents only, leaving the
+hair, the ink outlines and every other shape exactly as drawn. People always
+keep the head the illustrator drew.
+
 ## Everything else
 
 The motion engine, the shading and texture pass, the icon set, the aura shader,

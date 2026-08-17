@@ -19,6 +19,7 @@
 import { createAvatar, humation1 } from '../vendor/humation.bundle.js'
 import { buildDefs } from './render/textures.js'
 import { repaint, shadingFor, groundShadow, grainWash } from './render/shading.js'
+import { skullPath, skullForSeed } from './render/skull.js'
 
 // ── Seeded picking ──────────────────────────────────────────────────────────
 /** FNV-1a — same hash AgentDesk uses, so a given id picks the same colours. */
@@ -375,6 +376,13 @@ export const PARTS = humation1.parts.reduce((acc, p) => {
 const HEAD_DY = -0.5
 export const EYE_BOX_L = [28.2, 35.1, 30.1, 37.3]
 export const EYE_BOX_R = [32.7, 35.4, 34.6, 37.7]
+
+// The two ink strokes that draw the JAW. Constant across 21 of the 24 heads —
+// the three long-hair heads draw that area differently because the hair covers
+// it. They are the only outline the skull has below the hairline, which is why
+// a generated skull has to remove them and draw its own.
+export const JAW_L_BOX = [22.5, 32.8, 36.7, 53.5]
+export const JAW_R_BOX = [44.3, 36.9, 53.7, 52.3]
 const BOX_TOLERANCE = 0.6
 
 /** Rough bbox of a path `d`, from its raw coordinate pairs. Control points make
@@ -452,11 +460,15 @@ export function buildAvatar(config) {
   // Find the two baked eyes — and the skin path, which gives the head sphere.
   const paths = [...head.matchAll(/<path d="([^"]+)"\s*fill="([^"]*)"\s*\/>/g)]
   let skinBox = null
+  let skullTag = null
   const eyes = []
   for (const m of paths) {
     const box = bboxOf(m[1])
     if (!box) continue
-    if (m[2].includes('--hm-skin') && !skinBox) skinBox = box
+    if (m[2].includes('--hm-skin') && !skinBox) {
+      skinBox = box
+      skullTag = m[0]
+    }
     if (near(box, EYE_BOX_L) || near(box, EYE_BOX_R)) eyes.push({ tag: m[0], box })
   }
   if (eyes.length !== 2) {
@@ -474,6 +486,54 @@ export function buildAvatar(config) {
   // Cut the baked eyes and wrap the head so the engine can move it on a turn.
   let newHead = head
   for (const e of eyes) newHead = newHead.replace(e.tag, '')
+
+  // ── Generated skull, agents only ────────────────────────────────────────
+  // An AI is allowed a head that no person has. A person is not.
+  //
+  // This rewrites ONE path — the skull — and leaves the hair, the ink outlines
+  // and everything else exactly as drawn. The hair box is wider than the skull
+  // box on every Humation head, so the hair keeps sitting on top and framing
+  // it; what changes is the shape of the face inside that frame.
+  //
+  // The generated outline fills the ORIGINAL box exactly (see render/skull.js),
+  // which is what keeps this from touching the eyes: `faceFrom` below measures
+  // the head sphere off this same path, and an identical box gives an identical
+  // sphere. Swapping shapes cannot move anybody's eyes.
+  let skull = 'round'
+  if ((config.kind || 'agent') !== 'customer' && skullTag && config.skull !== false) {
+    skull = config.skull || skullForSeed(hash(String(config.seed || 'a') + ':skull'))
+    if (skull !== 'round') {
+      const d = skullPath(skull, skinBox, hash(String(config.seed || 'a') + ':skullseed'))
+      if (d) {
+        newHead = newHead.replace(skullTag, skullTag.replace(/ d="[^"]+"/, ` d="${d}"`))
+
+        // ── AND ITS OUTLINE ──────────────────────────────────────────────
+        //
+        // Rewriting the fill alone was the whole reason this feature looked
+        // like it "wasn't implemented": there is NO single outline path around
+        // a Humation skull. The head's ink is the hair outline on top plus TWO
+        // fixed jaw strokes below — measured constant across 21 of the 24
+        // heads. So the new skull was being drawn inside the OLD chin, which
+        // left white crescents where the two disagreed and read, correctly, as
+        // the old head with a broken fill.
+        //
+        // So the jaw ink goes, and the generated skull gets its own outline —
+        // the same path, stroked. The hair keeps its own outline and still sits
+        // on top, which is what continues to frame the face.
+        const jaws = [...newHead.matchAll(/<path d="([^"]+)"\s*fill="var\(--hm-stroke[^"]*"\s*\/>/g)]
+          .map((m) => ({ tag: m[0], box: bboxOf(m[1]) }))
+          .filter((p) => p.box && (near(p.box, JAW_L_BOX) || near(p.box, JAW_R_BOX)))
+        for (const jaw of jaws) newHead = newHead.replace(jaw.tag, '')
+
+        const outline =
+          `<path d="${d}" fill="none" stroke="var(--hm-stroke, #000000)" stroke-width="1.7"` +
+          ` stroke-linejoin="round" stroke-linecap="round"/>`
+        // Ink goes last in the head layer, above the skin and the hair — which
+        // is exactly where the jaw strokes it replaces used to sit.
+        newHead = newHead.replace(/<\/g>\s*$/, `${outline}</g>`)
+      } else skull = 'round'
+    }
+  }
   svg = svg.slice(0, headStart) + '<g id="head-shift">' + newHead + '</g>' + svg.slice(headEnd)
 
   // The BODY gets its own wrapper too, for breathing. Chest rise has to happen
@@ -569,6 +629,7 @@ export function buildAvatar(config) {
     // fitting the lenses instead of hiding behind them.
     faceGlassed: lensSlots.length ? faceFrom(skinBox, eyes, lensSlots, variationFor(config.seed || 'a')) : null,
     strippedEyes: eyes.length,
+    skull,
     petEyes: pets.count,
     lenses: lenses.length,
     toolGlasses,
@@ -812,5 +873,52 @@ function faceFrom(skinBox, eyes, lenses = [], v = variationFor('a')) {
     // makes the same motion read correctly on a much smaller face.
     gazeXMax: sep * (13.2 / 49.2),
     gazeYMax: sep * (8.4 / 49.2),
+
+    // ── Where a feature is physically allowed to be ────────────────────────
+    //
+    // Until now the only limit was a vertical band, so an eye could not climb
+    // to the forehead but nothing stopped it sliding sideways off the face, and
+    // the band itself was generous enough to reach the hairline and the neck.
+    // Pitch, a mood's head pose, an act and the gaze all move the eyes and they
+    // ADD, so any single loose bound is the one that ships broken.
+    //
+    // These are measured off the artwork rather than guessed, and they are
+    // ellipses because a face is not a rectangle:
+    //
+    //   eyes  centred where the illustrator drew them, reaching at most part
+    //         of the way to the crown (which the hair covers) and part of the
+    //         way down to the mouth. Horizontally, inside the skull.
+    //   mouth centred on the mouth, never climbing into the eyes and never
+    //         dropping onto the neck.
+    //
+    // Both are inset by the feature's own half-size, so it is the EDGE of the
+    // drawn shape that respects the face, not just its centre point.
+    eyeRegion: (() => {
+      const eyeY = (slots[0].y + slots[1].y) / 2
+      const skullTop = sy0 + HEAD_DY
+      const halfH = Math.max(slots[0].halfH, slots[1].halfH)
+      const halfW = Math.max(slots[0].halfW, slots[1].halfW)
+      return {
+        cx: pairCentre,
+        cy: eyeY,
+        // Never past the sides of the skull, less the eye's own width.
+        rx: Math.max(0.5, radius * 0.62 - halfW),
+        // UP is the tight one. The distance from the eyes to the crown is large
+        // — most of it is forehead the hair covers — so a generous fraction of
+        // it puts the eyes in the fringe. Measured, a third of that gap gave
+        // 4.1 units of upward travel against 1.2 down, which is exactly
+        // backwards: an eye has LESS room toward the hairline than toward the
+        // cheek, not more.
+        up: Math.max(0.5, (eyeY - skullTop) * 0.2 - halfH),
+        down: Math.max(0.5, (mouth.y - eyeY) * 0.45 - halfH),
+      }
+    })(),
+    mouthRegion: {
+      cx: mouth.x,
+      cy: mouth.y,
+      rx: Math.max(0.5, radius * 0.5 - mouth.halfW),
+      up: Math.max(0.4, (mouth.y - (slots[0].y + slots[1].y) / 2) * 0.3 - mouth.halfH),
+      down: Math.max(0.4, (sy1 + HEAD_DY - mouth.y) * 0.35 - mouth.halfH),
+    },
   }
 }

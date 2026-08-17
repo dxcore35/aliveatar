@@ -231,6 +231,24 @@ export const KIND_PROFILE = {
   customer: {
     turnMode: 'slide',
     turnLimit: (14 * Math.PI) / 180,
+    // How much of the sphere projection a face gets (motion/sphere.js), split
+    // into the eye's SHAPE and its PLACEMENT.
+    //
+    // A person's eyes stay ON their face — they do not ride around the skull.
+    // So `spherePos: 0` keeps the placement exactly as it was: the damped slide
+    // the illustrator's pose was tuned around, unchanged to the pixel.
+    // `sphere: 0.34` takes only the shape half — the eyes now lean with the
+    // head and foreshorten slightly, which is volume without travel.
+    sphere: 0.34,
+    spherePos: 0,
+    // How much of an expression's own head pose a face takes. bloub's moods
+    // swing the head hard — bored turns 30° away — which suits a machine and
+    // overacts on a person, who shows a mood mostly in the face.
+    moodPose: 0.45,
+    // How much of a PERSON this face is, for scaling the eye acts. A machine
+    // may fling its eyes round its skull; a person plays the same beat with
+    // their head instead. Nothing is skipped — see motion/eyeacts.js.
+    humanMix: 1,
     eyeW: 1,
     eyeH: 1,
     swayScale: 0.55,
@@ -245,6 +263,12 @@ export const KIND_PROFILE = {
   agent: {
     turnMode: 'sphere',
     turnLimit: Infinity,
+    // An agent is not a person, so it gets the whole projection: eyes that
+    // travel the head, foreshorten, lean, and cross the limb out of sight.
+    sphere: 1,
+    spherePos: 1,
+    moodPose: 1,
+    humanMix: 0,
     eyeW: 1.22,
     eyeH: 1.62,
     swayScale: 1.5,

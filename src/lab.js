@@ -2,7 +2,9 @@
 // merged avatar is a plain custom element you can drop anywhere.
 import './avatar-motion.js'
 import { buildAvatar, PARTS } from './humation.js'
-import { EXPRESSION_NAMES, RINGS } from './expressions.js'
+import { EXPRESSION_NAMES, RINGS, BLOUB_FIRST } from './expressions.js'
+import { EYE_ACTS, ACT_BY_ID } from './motion/eyeacts.js'
+import { SKULL_NAMES, SKULL_SHAPES } from './render/skull.js'
 import { POOLS, BLINK, EXPR_CADENCE, MOTION, STATE_GROUPS, STATE_NOTES, TOOL_SCRIPTS } from './states.js'
 import { STATES } from './states.js'
 import { activeCount, totalCount } from './core/ticker.js'
@@ -52,6 +54,7 @@ function currentConfig() {
     kind: $('kind').value,
     color: $('color').value,
     gender: $('gender').value || undefined,
+    skull: $('part-skull')?.value || '',
     selections: {},
   }
   for (const slot of SLOTS) {
@@ -73,6 +76,8 @@ function rebuild() {
   live.setAttribute('color', cfg.color)
   if (cfg.gender) live.setAttribute('gender', cfg.gender)
   else live.removeAttribute('gender')
+  if (cfg.skull) live.setAttribute('skull', cfg.skull)
+  else live.removeAttribute('skull')
   for (const slot of SLOTS) {
     if (cfg.selections[slot]) live.setAttribute(slot, cfg.selections[slot])
     else live.removeAttribute(slot)
@@ -85,6 +90,7 @@ function rebuild() {
   mirror('kind', cfg.kind)
   mirror('color', cfg.color)
   mirror('gender', cfg.gender ?? null)
+  mirror('skull', cfg.skull || null)
   for (const slot of SLOTS) mirror(slot, cfg.selections[slot] ?? null)
 
   // The component rebuilds itself on those attribute changes; re-apply the
@@ -93,6 +99,13 @@ function rebuild() {
 
   const built = buildAvatar(cfg)
   $('r-cut').textContent = String(built.strippedEyes)
+  const sk = SKULL_SHAPES[built.skull]
+  $('skull-note').textContent =
+    cfg.kind === 'customer'
+      ? 'People always keep the head the illustrator drew. Only agents get a generated one.'
+      : built.skull === 'round'
+        ? 'Round — the drawn head, unchanged.'
+        : `${sk?.label || built.skull} — ${sk?.note || ''} The hair is untouched; it is the face inside it that changes.`
   showGeometry(built.face)
   $('kind-note').textContent =
     cfg.kind === 'customer'
@@ -208,7 +221,14 @@ setInterval(() => {
 // ── Auto demo ───────────────────────────────────────────────────────────────
 // While the demo runs it owns the state and the turn, so the manual controls
 // for those would just fight it — they are disabled and the sliders follow.
+// Declared up here, not beside the tour below: `setDemo` reads it, and a `let`
+// is unreachable before its own line runs.
+let eyeTour = null
+let actTour = null
+
 function setDemo(on) {
+  if (on && eyeTour) stopEyeTour()
+  if (on && actTour) stopActTour()
   $('btn-demo').setAttribute('aria-pressed', String(on))
   $('btn-demo').textContent = on ? '■ Stop demo' : '▶ Auto demo'
   $('turn').disabled = on
@@ -229,7 +249,110 @@ live.addEventListener('demobeat', (ev) => {
   document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === ev.detail.state)))
 })
 
+// ── Test eyes ───────────────────────────────────────────────────────────────
+// Walks EVERY eye type in order, both sets, and says which one is on screen.
+// The point is that the catalogue is long enough that a grid of buttons does
+// not tell you what you have — you have to watch them go past, and watch the
+// springs carry one shape into the next.
+function stopEyeTour() {
+  if (eyeTour) clearInterval(eyeTour)
+  eyeTour = null
+  $('btn-eyes').setAttribute('aria-pressed', 'false')
+  $('btn-eyes').textContent = '👁 Test eyes'
+  $('demo-note').textContent = ''
+  applyControls()
+}
+function startEyeTour() {
+  setDemo(false)
+  // The tour IS the expression driver for its duration; leaving the automatic
+  // one on would have the two fighting over the same face.
+  $('auto-expr').checked = false
+  applyControls()
+  $('btn-eyes').setAttribute('aria-pressed', 'true')
+  $('btn-eyes').textContent = '■ Stop eye tour'
+  let i = -1
+  const show = () => {
+    i++
+    if (i >= RINGS.length) return stopEyeTour()
+    both((a) => a.setExpression(i))
+    const set = i < BLOUB_FIRST ? 'generated set' : 'bloub set'
+    $('demo-note').textContent =
+      `${String(i + 1).padStart(2, '0')} / ${RINGS.length} · ${EXPRESSION_NAMES[i]} · ${set}`
+    document
+      .querySelectorAll('[data-expr]')
+      .forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === i)))
+    // Keep the running expression visible in a long grid.
+    document.querySelector(`[data-expr="${i}"]`)?.scrollIntoView({ block: 'nearest' })
+  }
+  show()
+  eyeTour = setInterval(show, 1150)
+}
+$('btn-eyes').onclick = () => (eyeTour ? stopEyeTour() : startEyeTour())
+
+// ── Eye animations ──────────────────────────────────────────────────────────
+// One button per act, plus a runner that plays the lot back to back. The note
+// under the grid says what each one is FOR, because "orbit" and "narrow" mean
+// nothing until you have seen them once.
+$('act-grid').innerHTML = EYE_ACTS.map(
+  (a) => `<button data-act="${a.id}" title="${a.label}">${a.id}</button>`,
+).join('')
+
+function playAct(a) {
+  $('act-note').textContent = `${a.label} · ${a.dur.toFixed(1)} s — ${a.note}`
+  // Also on the stage caption, so it reads while you are watching the avatars
+  // rather than making you look away to find out what is playing.
+  $('demo-note').textContent = `▶ ${a.label}`
+  document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.act === a.id)))
+  both((av) => av.playAct(a.id))
+}
+$('act-grid').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-act]')
+  if (!btn) return
+  stopActTour()
+  playAct(ACT_BY_ID.get(btn.dataset.act))
+})
+
+function stopActTour() {
+  if (actTour) clearTimeout(actTour)
+  actTour = null
+  $('btn-acts').setAttribute('aria-pressed', 'false')
+  $('btn-acts').textContent = '▶ Play all animations'
+  $('btn-eyeanim').setAttribute('aria-pressed', 'false')
+  $('btn-eyeanim').textContent = '✨ Eye animations'
+  $('demo-note').textContent = ''
+  document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', 'false'))
+}
+function startActTour() {
+  setDemo(false)
+  stopEyeTour()
+  $('btn-acts').setAttribute('aria-pressed', 'true')
+  $('btn-acts').textContent = '■ Stop'
+  $('btn-eyeanim').setAttribute('aria-pressed', 'true')
+  $('btn-eyeanim').textContent = '■ Stop animations'
+  let i = 0
+  const step = () => {
+    if (i >= EYE_ACTS.length) return stopActTour()
+    const a = EYE_ACTS[i++]
+    playAct(a)
+    // A short gap after each act, so you see it end rather than be cut off.
+    actTour = setTimeout(step, a.dur * 1000 + 420)
+  }
+  step()
+}
+$('btn-acts').onclick = () => (actTour ? stopActTour() : startActTour())
+// The same runner, on a button that sits with the stage rather than 2,000 px
+// down the page. The animations are the part people come to see; burying them
+// under the expression grid meant nobody found them.
+$('btn-eyeanim').onclick = () => {
+  if (actTour) return stopActTour()
+  startActTour()
+  document.getElementById('act-grid').scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
 $('btn-reset').onclick = () => {
+  stopEyeTour()
+  stopActTour()
+  both((a) => a.stopAct())
   setDemo(false)
   for (const [id, v] of [['spring', 7], ['gx', 0], ['gy', 0], ['turn', 0], ['scale', 1]]) $(id).value = String(v)
   for (const id of ['emphasis', 'mouse']) $(id).checked = false
@@ -239,10 +362,54 @@ $('btn-reset').onclick = () => {
 $('btn-random').onclick = () => {
   $('seed').value = `${$('kind').value}:${Math.random().toString(36).slice(2, 9)}`
   for (const slot of SLOTS) $(`part-${slot}`).value = ''
+  $('part-skull').value = ''
   rebuild()
 }
 
+// ── New head + colours ──────────────────────────────────────────────────────
+// One button that walks the whole agent LOOK: a different generated skull, a
+// different signature colour (which is the skin), and a fresh seed so the hair,
+// outfit and face proportions move with it.
+//
+// Stepping the skull rather than picking at random guarantees you SEE every
+// shape if you keep pressing — a random pick repeats and hides the rare ones,
+// which is exactly how you end up thinking a feature is not implemented.
+let headStep = 0
+$('btn-head').onclick = () => {
+  if ($('kind').value !== 'agent') {
+    $('kind').value = 'agent'
+  }
+  const shapes = SKULL_NAMES
+  headStep = (headStep + 1) % shapes.length
+  $('part-skull').value = shapes[headStep]
+  // A vivid spread — agents are not people and their colour says so.
+  const palette = [
+    '#3B82F6', '#16A34A', '#9333EA', '#E36F3D', '#0E7490', '#BE185D',
+    '#EAB308', '#14B8A6', '#F43F5E', '#8B5CF6', '#06B6D4', '#84CC16',
+  ]
+  $('color').value = palette[Math.floor(Math.random() * palette.length)]
+  $('seed').value = `agent:${Math.random().toString(36).slice(2, 9)}`
+  for (const slot of SLOTS) $(`part-${slot}`).value = ''
+  rebuild()
+  $('demo-note').textContent = `head: ${shapes[headStep]}`
+}
+
 // ── Part pickers ────────────────────────────────────────────────────────────
+// ── Skull picker ────────────────────────────────────────────────────────────
+// Agents only, by design: an AI may have a head no person has, a person may not.
+$('part-pickers').insertAdjacentHTML(
+  'beforebegin',
+  `<label class="control">
+     <span class="control-head"><span>skull (agents only)</span></span>
+     <select id="part-skull">
+       <option value="">from seed</option>
+       <option value="none">none — keep the drawn head</option>
+       ${SKULL_NAMES.map((n) => `<option value="${n}">${n}</option>`).join('')}
+     </select>
+   </label>
+   <p class="note" id="skull-note" style="margin-top:-4px"></p>`,
+)
+
 $('part-pickers').innerHTML = SLOTS.map(
   (slot) => `<label class="control">
       <span class="control-head"><span>${slot}</span></span>
@@ -253,19 +420,27 @@ $('part-pickers').innerHTML = SLOTS.map(
     </label>`,
 ).join('')
 for (const slot of SLOTS) $(`part-${slot}`).addEventListener('input', rebuild)
+$('part-skull').addEventListener('input', rebuild)
 
 // ── Expression grid ─────────────────────────────────────────────────────────
-$('expr-grid').innerHTML = RINGS.map(
-  (_, i) =>
-    `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}">${String(i).padStart(2, '0')} ${EXPRESSION_NAMES[i]}</button>`,
-).join('')
+$('expr-grid').innerHTML = RINGS.map((_, i) => {
+  // The bloub entries move the head as well as the eyes, so they are marked —
+  // otherwise it looks like the avatar wanders off on its own for sixteen of
+  // the forty-one.
+  const tag = i >= BLOUB_FIRST ? ' ✦' : ''
+  return `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}${
+    i >= BLOUB_FIRST ? ' — bloub set: moves the head too' : ''
+  }">${String(i).padStart(2, '0')} ${EXPRESSION_NAMES[i].replace(/^bloub /, '')}${tag}</button>`
+}).join('')
 $('expr-grid').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-expr]')
   if (!btn) return
   const i = Number(btn.dataset.expr)
+  stopEyeTour()
   $('auto-expr').checked = false
   applyControls()
   both((a) => a.setExpression(i))
+  document.querySelectorAll('[data-expr]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === i)))
 })
 
 // ── State picker ────────────────────────────────────────────────────────────

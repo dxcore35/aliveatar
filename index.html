@@ -84,6 +84,8 @@
       .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
       .grid5 button { padding: 6px 2px; font-size: 0.7rem; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+      .grid3 button { padding: 9px 6px; font-size: 0.76rem; border-radius: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .chips { display: flex; flex-wrap: wrap; gap: 5px; }
       .chips button { border-radius: 999px; padding: 5px 9px; font-size: 0.78rem; background: transparent; color: var(--muted); }
       .chips button[aria-pressed='true'] { border-color: var(--primary); color: var(--primary); background: transparent; }
@@ -173,6 +175,8 @@
             <p class="note" id="demo-note" style="min-height:1.4em;text-align:center"></p>
             <div class="row" style="justify-content:center">
               <button class="primary" id="btn-demo" aria-pressed="false">▶ Auto demo</button>
+              <button class="primary" id="btn-eyes" aria-pressed="false">👁 Test eyes</button>
+              <button class="primary" id="btn-eyeanim" aria-pressed="false">✨ Eye animations</button>
               <button id="btn-blink">Blink</button>
               <button id="btn-spin">Spin</button>
               <button id="btn-mount">Replay mount</button>
@@ -218,7 +222,10 @@
             </div>
             <p class="note" id="kind-note"></p>
             <div class="grid2" id="part-pickers"></div>
-            <button id="btn-random">Random person</button>
+            <div class="row">
+              <button id="btn-random">Random person</button>
+              <button id="btn-head" class="primary">🎲 New head + colours</button>
+            </div>
           </section>
         </div>
 
@@ -238,9 +245,32 @@
               <h3>Expression</h3>
               <p class="note">
                 Each button loads two 48-point eye rings. The face springs from
-                where it is to the new shape — it never cuts.
+                where it is to the new shape — it never cuts. The ✦ entries also
+                move the head, so the spring carries that too. Press
+                <b>Test eyes</b> above to watch all forty-one go past in order.
               </p>
               <div class="grid5" id="expr-grid"></div>
+            </section>
+
+            <section class="panel">
+              <h3>Eye animations</h3>
+              <p class="note">
+                These are not poses — they are performances, with a length and a
+                shape over time. They come from bloub's animated states, where
+                the interesting part is the middle of the move, not where it
+                ends. Each one plays over whatever expression is showing and
+                hands the face back. A person takes a smaller share of the big
+                ones, so the beat is the same on both kinds.
+              </p>
+              <div class="grid3" id="act-grid"></div>
+              <p class="note" id="act-note" style="min-height:2.6em"></p>
+              <div class="row" style="justify-content:center">
+                <button class="primary" id="btn-acts" aria-pressed="false">▶ Play all animations</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3>Spring</h3>
               <label class="control">
                 <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
                 <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
@@ -335,11 +365,14 @@
 
           <section class="tab-panel" id="tab-faces" role="tabpanel" hidden>
             <section class="panel">
-              <h3>All 25 expressions, held still</h3>
+              <h3>All 41 eye types, held still</h3>
               <p class="note">
-                Same person, same seed, cropped to the head. Each face is eight
-                numbers per eye plus four for the mouth — nothing is drawn by
-                hand. Click one to send it to the stage.
+                Same person, same seed, cropped to the head. Nothing is drawn by
+                hand. Click one to send it to the stage. The first twenty-five
+                are the generated set — eight numbers per eye, all the mood in
+                the eye shape. The last sixteen (marked&nbsp;✦) are the bloub
+                set, where the mood is also carried by the head: how it is
+                turned, and how far apart the eyes sit on it.
               </p>
               <div class="gallery" id="faces"></div>
             </section>
