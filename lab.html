@@ -67,11 +67,12 @@
       .stage-avatars {
         display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px; width: 100%; max-width: 760px;
+        --tile-radius: 20px;
         /* Both panels fade as one, so a change never lands on one side first. */
         opacity: 1; transition: opacity 0.26s ease;
       }
       .figure { display: grid; gap: 7px; justify-items: center; }
-      .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
+      .figure > .box, .stage-avatars > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
       /* Agents carry no background of their own, so the stage supplies the page
          each theme would put behind them. */
       .box.theme-dark { background: #14161b; }
@@ -86,16 +87,24 @@
       .meter { width: 110px; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
       .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 60ms linear; }
 
-      /* ── who: one line, no field labels — the options say it ────────── */
-      .who {
-        display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-        padding: 10px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 14px;
+      /* ── one field, groups marked by a wider gap ─────────────────────── */
+      .flow { row-gap: 5px; }
+      /* A group is not a box — it contributes its label and its pills straight
+         into the parent's wrap, so a line can hold the end of one group and the
+         start of the next. */
+      .grp { display: contents; }
+      .grp[hidden] { display: none; }
+      .flow .group-label { padding-left: 26px; }
+      .flow > .grp:first-child .group-label { padding-left: 0; }
+      /* A colour is quicker to recognise than its hex, so the swatch IS the
+         label. */
+
+
+      /* the name, under the pair, in the character's own colour */
+      .name {
+        margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+        color: var(--accent-ink);
       }
-      .who #part-pickers { display: contents; }
-      .who input[type='text'] { width: 128px; }
-      .who #age { width: 62px; }
-      .who input[type='color'] { width: 30px; height: 26px; padding: 1px; }
-      .who select { max-width: 128px; }
 
       /* ── controls ───────────────────────────────────────────────────── */
       button, select, input[type='text'] {
@@ -191,6 +200,17 @@
       @media (max-width: 760px) {
         .stage-avatars { grid-template-columns: 1fr 1fr; gap: 10px; }
       }
+      /* Last in the sheet on purpose: `.chips button` sets a transparent
+         background, and a swatch with no fill is not a swatch. */
+      .chips button.swatch {
+        width: 20px; height: 20px; padding: 0; border-radius: 999px;
+        background: var(--swatch);
+        border: 1px solid color-mix(in oklab, var(--ink) 25%, transparent);
+      }
+      .chips button.swatch[aria-pressed='true'] {
+        background: var(--swatch); border-color: var(--accent-ink);
+        box-shadow: 0 0 0 2px var(--page), 0 0 0 3.5px var(--accent-ink);
+      }
     </style>
   </head>
   <body>
@@ -211,15 +231,10 @@
       <!-- ── The centrepiece: one person, both themes ─────────────────── -->
       <section class="stage">
         <div class="stage-avatars">
-          <figure class="figure">
-            <div class="box theme-dark" id="box-live"></div>
-            <figcaption>dark</figcaption>
-          </figure>
-          <figure class="figure">
-            <div class="box theme-light" id="box-light"></div>
-            <figcaption>light</figcaption>
-          </figure>
+          <div class="box theme-dark" id="box-live"></div>
+          <div class="box theme-light" id="box-light"></div>
         </div>
+        <p class="name" id="avatar-name">Waffle</p>
 
         <div class="actions">
           <button class="primary" id="btn-demo" aria-pressed="false">Demo</button>
@@ -235,91 +250,39 @@
       </section>
 
       <!-- ── Who ──────────────────────────────────────────────────────── -->
-      <section class="who">
-        <span class="group-label">who</span>
-        <input type="text" id="seed" value="agent:reception-01" title="Seed" />
-        <select id="kind" title="Kind">
-          <option value="agent">agent</option>
-          <option value="customer">person</option>
-        </select>
-        <input type="color" id="color" value="#3B82F6" title="Agent colour" />
-        <select id="gender" title="Gender">
-          <option value="">any gender</option>
-          <option value="female">female</option>
-          <option value="male">male</option>
-        </select>
-        <input type="text" id="age" placeholder="age" inputmode="numeric" title="Age" />
-        <span id="part-pickers"></span>
-        <span class="note" id="kind-note" hidden></span>
-        <span class="note" id="skull-note" hidden></span>
-      </section>
-
       <div class="shell">
         <main>
           <section id="tab-drive">
-            <section class="panel">
-              <h3>states</h3>
-              <div class="chips" id="state-groups"></div>
-            </section>
+            <!-- Everything the avatar can be, in one field. The only thing
+                 separating one kind of setting from the next is a wider gap
+                 and its label. -->
+            <div class="chips flow" id="controls"></div>
 
-            <section class="panel">
-              <h3>expressions</h3>
-              <div class="chips" id="expr-grid"></div>
-            </section>
-
-            <section class="panel">
-              <h3>eye animations</h3>
-              <div class="chips" id="act-grid"></div>
-              <p class="note" id="act-note" hidden></p>
-            </section>
-
-            <section class="panel">
-              <h3>switches</h3>
-              <div class="chips">
-                <label class="pill"><input type="checkbox" id="mouse" /><span>eyes follow pointer</span></label>
-                <label class="pill"><input type="checkbox" id="emphasis" /><span>bigger eyes</span></label>
-                <label class="pill"><input type="checkbox" id="look" checked /><span>light + texture</span></label>
-                <label class="pill"><input type="checkbox" id="aura" checked /><span>aura shader</span></label>
-                <label class="pill"><input type="checkbox" id="auto-blink" checked /><span>auto blink</span></label>
-                <label class="pill"><input type="checkbox" id="auto-expr" checked /><span>auto expression</span></label>
-                <label class="pill"><input type="checkbox" id="auto-motion" checked /><span>auto motion</span></label>
-                <span class="group-label">emblem</span>
-                <select id="emblem">
-                  <option value="icon">icon</option>
-                  <option value="item">hat / pet</option>
-                  <option value="off">none</option>
-                </select>
-                <button class="primary" id="btn-acts" aria-pressed="false">play all animations</button>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>dials</h3>
-              <div class="dials">
-                <label class="control">
-                  <span class="control-head"><span>spring</span><output id="o-spring">7.0</output></span>
-                  <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
-                </label>
-                <label class="control">
-                  <span class="control-head"><span>gaze x</span><output id="o-gx">0.00</output></span>
-                  <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
-                </label>
-                <label class="control">
-                  <span class="control-head"><span>gaze y</span><output id="o-gy">0.00</output></span>
-                  <input type="range" id="gy" min="-1" max="1" step="0.01" value="0" />
-                </label>
-                <label class="control">
-                  <span class="control-head"><span>turn</span><output id="o-turn">0&deg;</output></span>
-                  <input type="range" id="turn" min="-110" max="110" step="1" value="0" />
-                </label>
-                <label class="control">
-                  <span class="control-head"><span>eye size</span><output id="o-scale">1.00&times;</output></span>
-                  <input type="range" id="scale" min="0.3" max="2" step="0.02" value="1" />
-                </label>
-              </div>
-              <p class="note" id="gaze-note" hidden></p>
-              <span hidden id="front-angle"></span>
-            </section>
+            <div class="dials">
+              <label class="control">
+                <span class="control-head"><span>spring</span><output id="o-spring">7.0</output></span>
+                <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>gaze x</span><output id="o-gx">0.00</output></span>
+                <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>gaze y</span><output id="o-gy">0.00</output></span>
+                <input type="range" id="gy" min="-1" max="1" step="0.01" value="0" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>turn</span><output id="o-turn">0&deg;</output></span>
+                <input type="range" id="turn" min="-13" max="28" step="1" value="0" />
+              </label>
+              <label class="control">
+                <span class="control-head"><span>eye size</span><output id="o-scale">1.00&times;</output></span>
+                <input type="range" id="scale" min="0.3" max="2" step="0.02" value="1" />
+              </label>
+            </div>
+            <p class="note" id="gaze-note" hidden></p>
+            <span hidden id="front-angle"></span>
+            <span hidden id="act-note"></span>
           </section>
 
           <section class="panel gallery-panel" id="gallery-panel" hidden>

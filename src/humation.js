@@ -19,7 +19,7 @@
 import { createAvatar, humation1 } from '../vendor/humation.bundle.js'
 import { buildDefs } from './render/textures.js'
 import { repaint, shadingFor, groundShadow, grainWash } from './render/shading.js'
-import { skullPath, skullForSeed } from './render/skull.js'
+import { skullPath, skullForSeed, halfWidthAt } from './render/skull.js'
 
 // ── Seeded picking ──────────────────────────────────────────────────────────
 /** FNV-1a — same hash AgentDesk uses, so a given id picks the same colours. */
@@ -575,7 +575,7 @@ export function buildAvatar(config) {
     if (skull !== 'round') {
       const d = skullPath(skull, skinBox, hash(String(config.seed || 'a') + ':skullseed'))
       if (d) {
-        newHead = newHead.replace(skullTag, skullTag.replace(/ d="[^"]+"/, ` d="${d}"`))
+        const swappedSkull = skullTag.replace(/ d="[^"]+"/, ` d="${d}"`)
 
         // ── AND ITS OUTLINE ──────────────────────────────────────────────
         //
@@ -598,9 +598,14 @@ export function buildAvatar(config) {
         const outline =
           `<path d="${d}" fill="none" stroke="var(--hm-stroke, #000000)" stroke-width="1.7"` +
           ` stroke-linejoin="round" stroke-linecap="round"/>`
-        // Ink goes last in the head layer, above the skin and the hair — which
-        // is exactly where the jaw strokes it replaces used to sit.
-        newHead = newHead.replace(/<\/g>\s*$/, `${outline}</g>`)
+        // The outline goes with the SKULL, not last.
+        //
+        // Last put it above the hair, and a triangle's two long edges then cut
+        // straight across the fringe — the shape drawing itself on top of the
+        // thing that is supposed to be in front of it. Hair is the top layer of
+        // a head; the face outline belongs under it, which is also where the
+        // jaw strokes it replaces used to sit relative to the fringe.
+        newHead = newHead.replace(skullTag, swappedSkull + outline)
       } else skull = 'round'
     }
   }
@@ -694,10 +699,10 @@ export function buildAvatar(config) {
   return {
     svg,
     colors,
-    face: faceFrom(skinBox, eyes, lenses, variationFor(config.seed || 'a')),
+    face: faceFrom(skinBox, eyes, lenses, variationFor(config.seed || 'a'), skull),
     // Where the eyes move to while the tool glasses are on, so they keep
     // fitting the lenses instead of hiding behind them.
-    faceGlassed: lensSlots.length ? faceFrom(skinBox, eyes, lensSlots, variationFor(config.seed || 'a')) : null,
+    faceGlassed: lensSlots.length ? faceFrom(skinBox, eyes, lensSlots, variationFor(config.seed || 'a'), skull) : null,
     strippedEyes: eyes.length,
     skull,
     petEyes: pets.count,
@@ -868,7 +873,7 @@ function variationFor(seed) {
   }
 }
 
-function faceFrom(skinBox, eyes, lenses = [], v = variationFor('a')) {
+function faceFrom(skinBox, eyes, lenses = [], v = variationFor('a'), skull = 'round') {
   const [sx0, sy0, sx1, sy1] = skinBox
   const cx = (sx0 + sx1) / 2
   const cy = (sy0 + sy1) / 2 + HEAD_DY
@@ -938,6 +943,29 @@ function faceFrom(skinBox, eyes, lenses = [], v = variationFor('a')) {
     neck,
     variation: v,
     separation: sep,
+    // ── How far this head may turn ──────────────────────────────────────
+    //
+    // Not a constant. The art is drawn in three-quarter view, so it starts
+    // already turned: `frontAngle` is how far it must come back to face you.
+    // Coming forward PAST straight-on looks wrong on a drawing that is not,
+    // so that is the positive limit. Going further INTO the turn has room —
+    // the far eye does not reach the silhouette for another forty degrees —
+    // but it reads as a head wrenched round, so it gets a fraction of the
+    // same number. Both are then clamped by the real geometry: an eye may
+    // never reach the edge of the head.
+    ...(() => {
+      const front = -(slots[0].baseLongitude + slots[1].baseLongitude) / 2
+      const widest = Math.max(slots[0].halfW, slots[1].halfW)
+      const eyeAngle = Math.asin(Math.min(1, widest / radius))
+      const edge = Math.PI / 2 - eyeAngle - 0.09
+      const slackPlus = Math.min(edge - slots[0].baseLongitude, edge - slots[1].baseLongitude)
+      const slackMinus = Math.min(edge + slots[0].baseLongitude, edge + slots[1].baseLongitude)
+      return {
+        frontAngle: front,
+        turnMax: Math.max(0.05, Math.min(front, slackPlus)),
+        turnMin: -Math.max(0.05, Math.min(front * 0.45, slackMinus)),
+      }
+    })(),
     // The gist moves the gaze 13.2 of a 49-unit eye separation horizontally and
     // 8.4 vertically. Keeping those RATIOS (not the absolute units) is what
     // makes the same motion read correctly on a much smaller face.
@@ -971,8 +999,11 @@ function faceFrom(skinBox, eyes, lenses = [], v = variationFor('a')) {
       return {
         cx: pairCentre,
         cy: eyeY,
-        // Never past the sides of the skull, less the eye's own width.
-        rx: Math.max(0.5, radius * 0.62 - halfW),
+        // Never past the sides of the skull, less the eye's own width — and
+        // "the sides" depends on the shape. A triangle is a third as wide at
+        // the eyes as a circle is, so a fixed fraction of the radius walks an
+        // eye clean out of the face.
+        rx: Math.max(0.5, radius * 0.62 * halfWidthAt(skull, (eyeY - cy) / radius) - halfW),
         // UP is the tight one. The distance from the eyes to the crown is large
         // — most of it is forehead the hair covers — so a generous fraction of
         // it puts the eyes in the fringe. Measured, a third of that gap gave

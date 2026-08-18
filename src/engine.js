@@ -370,7 +370,12 @@ export class FaceEngine {
         // by a suggestion, not chase it.
         this.gaze.headX * 0.16 * this.profile.swayScale
     }
-    want = clamp(want, -this.profile.turnLimit, this.profile.turnLimit)
+    // The head's own limits come from the face it is attached to, and the kind
+    // profile only tightens them further — a person may not swing as far as an
+    // agent on the same drawing.
+    const lo = Math.max(this.face.turnMin ?? -this.profile.turnLimit, -this.profile.turnLimit)
+    const hi = Math.min(this.face.turnMax ?? this.profile.turnLimit, this.profile.turnLimit)
+    want = clamp(want, lo, hi)
     // The head turns slowly and heavily while the beams are up — menace is a
     // matter of pace, and a fast head turn cannot carry it.
     const k = 6.5 + (LASER_POSTURE.turnStiffness - 6.5) * this.laser

@@ -4,13 +4,14 @@ import './avatar-motion.js'
 import { buildAvatar, PARTS } from './humation.js'
 import { EXPRESSION_NAMES, RINGS, BLOUB_FIRST } from './expressions.js'
 import { EYE_ACTS, ACT_BY_ID } from './motion/eyeacts.js'
-import { SKULL_NAMES, SKULL_SHAPES } from './render/skull.js'
+import { SKULL_NAMES } from './render/skull.js'
 import { POOLS, BLINK, EXPR_CADENCE, MOTION, STATE_GROUPS, STATE_NOTES, TOOL_SCRIPTS } from './states.js'
 import { STATES } from './states.js'
 import { activeCount, totalCount } from './core/ticker.js'
 import { iconSvg } from './render/icons.js'
 import { emblemFor } from './render/emblem.js'
 import { randomVariation, applyVariation, SPACE } from './variation.js'
+import { nameFor } from './names.js'
 
 const $ = (id) => document.getElementById(id)
 const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
@@ -53,21 +54,39 @@ function both(fn) {
   fn(lightTwin)
 }
 
+// ── Who, as data ────────────────────────────────────────────────────────────
+// One object, not eleven form controls. The pills read it and write to it, the
+// demo writes to it, the gallery writes to it — and the seed never appears on
+// screen, because a name is a better handle for a person than an id is.
+const who = {
+  seed: 'agent:reception-01',
+  kind: 'agent',
+  color: '#3B82F6',
+  gender: '',
+  age: '',
+  skull: '',
+  head: '', body: '', bottom: '', item: '', glasses: '',
+}
+
 function currentConfig() {
   const cfg = {
-    seed: $('seed').value.trim() || 'avatar',
-    kind: $('kind').value,
-    color: $('color').value,
-    gender: $('gender').value || undefined,
-    age: $('age').value ? Number($('age').value) : undefined,
-    skull: $('part-skull')?.value || '',
+    seed: who.seed || 'avatar',
+    kind: who.kind,
+    color: who.color,
+    gender: who.gender || undefined,
+    age: who.age ? Number(who.age) : undefined,
+    skull: who.skull,
     selections: {},
   }
-  for (const slot of SLOTS) {
-    const v = $(`part-${slot}`)?.value
-    if (v) cfg.selections[slot] = v
-  }
+  for (const slot of SLOTS) if (who[slot]) cfg.selections[slot] = who[slot]
   return cfg
+}
+
+/** Set one slot and let everything downstream follow. */
+function setWho(slot, value) {
+  who[slot] = value == null ? '' : String(value)
+  paintVisuals()
+  rebuild()
 }
 
 // ── The accent is the avatar ────────────────────────────────────────────────
@@ -143,25 +162,131 @@ function rebuild() {
   // the one colour that is theirs and not everybody's.
   paintAccent(cfg.kind === 'agent' ? cfg.color : built.colors.hair)
   $('r-cut').textContent = String(built.strippedEyes)
-  const sk = SKULL_SHAPES[built.skull]
-  $('skull-note').textContent =
-    cfg.kind === 'customer'
-      ? 'People always keep the head the illustrator drew. Only agents get a generated one.'
-      : built.skull === 'round'
-        ? 'Round — the drawn head, unchanged.'
-        : `${sk?.label || built.skull} — ${sk?.note || ''} The hair is untouched; it is the face inside it that changes.`
-  $('kind-note').textContent =
-    cfg.kind === 'customer'
-      ? 'A person: the eyes stay stuck on the face and only slide a little. No spinning, no tool bubbles, natural eye size.'
-      : 'An AI: taller drawn eyes, the full head rotation, and tool calls that put glasses on and run the outfit colour.'
-  $('turn').min = cfg.kind === 'customer' ? '-14' : '-110'
-  $('turn').max = cfg.kind === 'customer' ? '14' : '110'
+  // The slider takes the range the FACE allows, measured from where its eyes
+  // sit on the sphere. A person turns less than an agent, so their share of it
+  // is smaller — but both numbers come from the drawing, not from a constant.
+  const share = cfg.kind === 'customer' ? 0.55 : 1
+  const deg = (r) => Math.round((r * 180) / Math.PI * share)
+  $('turn').min = String(deg(built.face.turnMin))
+  $('turn').max = String(deg(built.face.turnMax))
+  if (Number($('turn').value) > Number($('turn').max)) $('turn').value = $('turn').max
+  if (Number($('turn').value) < Number($('turn').min)) $('turn').value = $('turn').min
+  // The name is the only handle on screen, so it is painted from the same
+  // config that drew the face — never from a stale copy.
+  $('avatar-name').textContent = nameFor(cfg.seed, { kind: cfg.kind, gender: cfg.gender })
   $('gaze-note').textContent =
     `Gaze range on this face: ±${built.face.gazeXMax.toFixed(2)} horizontally, ` +
     `±${built.face.gazeYMax.toFixed(2)} vertically — kept as the gist's ratio of eye separation (${built.face.separation.toFixed(2)}).`
   const frontDeg = (-(built.face.slots[0].baseLongitude + built.face.slots[1].baseLongitude) / 2 * 180) / Math.PI
   $('front-angle').textContent = `${frontDeg > 0 ? '+' : ''}${frontDeg.toFixed(0)}°`
 }
+
+/** A vivid spread — agents are not people and their colour says so. */
+const AGENT_PALETTE = [
+  '#3B82F6', '#16A34A', '#9333EA', '#E36F3D', '#0E7490', '#BE185D',
+  '#EAB308', '#14B8A6', '#F43F5E', '#8B5CF6', '#06B6D4', '#84CC16',
+]
+
+// ── One field for every setting ─────────────────────────────────────────────
+// Kind, gender, age, colour, the wardrobe, the states, the expressions, the eye
+// moves and the switches all live in ONE flowing row. A group is its label plus
+// its pills; the only thing separating one group from the next is a wider gap
+// before the label. Nothing gets a line of its own, so the settings fill the
+// width instead of the height and the avatars stay in view.
+const VISUAL_ROWS = [
+  { slot: 'kind', label: 'kind', values: [['agent', 'agent'], ['customer', 'person']] },
+  { slot: 'gender', label: 'gender', values: [['', 'any'], ['female', 'female'], ['male', 'male']] },
+  { slot: 'age', label: 'age', values: [['', 'any'], ['22', '22'], ['31', '31'], ['44', '44'], ['57', '57'], ['68', '68'], ['79', '79']] },
+  { slot: 'color', label: 'colour', swatches: true, values: AGENT_PALETTE.map((c) => [c, c]) },
+  { slot: 'skull', label: 'skull', values: [['', 'any'], ...SKULL_NAMES.map((n) => [n, n])] },
+  { slot: 'head', label: 'hair', values: [['', 'any'], ...PARTS.head.map((n) => [n, n])] },
+  { slot: 'body', label: 'top', values: [['', 'any'], ...PARTS.body.map((n) => [n, n])] },
+  { slot: 'bottom', label: 'bottom', values: [['', 'any'], ...PARTS.bottom.map((n) => [n, n])] },
+  { slot: 'item', label: 'item', values: [['', 'any'], ...PARTS.item.map((n) => [n, n])] },
+  { slot: 'glasses', label: 'glasses', values: [['', 'any'], ...PARTS.glasses.map((n) => [n, n])] },
+]
+
+const SWITCHES = [
+  ['mouse', 'eye', 'follow pointer'],
+  ['emphasis', 'spark', 'bigger eyes'],
+  ['look', 'sun', 'light + texture'],
+  ['aura', 'orbit', 'aura'],
+  ['auto-blink', 'ear', 'auto blink'],
+  ['auto-expr', 'star', 'auto expression'],
+  ['auto-motion', 'signal', 'auto motion'],
+]
+
+const group = (name, label, inner) =>
+  `<span class="grp" data-row="${name}"><span class="group-label">${label}</span>${inner}</span>`
+
+$('controls').innerHTML = [
+  ...VISUAL_ROWS.map((row) =>
+    group(row.slot, row.label, row.values.map(([value, label]) =>
+      row.swatches
+        ? `<button class="swatch" data-who="${row.slot}" data-val="${value}" title="${label}" style="--swatch:${value}"></button>`
+        : `<button data-who="${row.slot}" data-val="${value}">${label}</button>`).join('')),
+  ),
+  ...STATE_GROUPS.map((g) =>
+    group(`state-${g.label}`, g.label, g.states.map((st) => {
+      const [icon] = emblemFor(st)
+      return `<button data-state="${st}" aria-pressed="${st === 'idle'}">${icon ? iconSvg(icon, { size: 13 }) : ''}${st}</button>`
+    }).join('')),
+  ),
+  group('expr-generated', 'faces', RINGS.slice(0, BLOUB_FIRST).map((_, i) =>
+    `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}">${EXPRESSION_NAMES[i]}</button>`).join('')),
+  group('expr-bloub', 'bloub faces', RINGS.slice(BLOUB_FIRST).map((_, k) => {
+    const i = BLOUB_FIRST + k
+    return `<button data-expr="${i}" title="${EXPRESSION_NAMES[i]}">${EXPRESSION_NAMES[i].replace(/^bloub /, '')}</button>`
+  }).join('')),
+  group('acts', 'eye moves', EYE_ACTS.map((a) => `<button data-act="${a.id}" title="${a.label}">${a.id}</button>`).join('')),
+  group('switches', 'switches', SWITCHES.map(([id, icon, label]) =>
+    `<label class="pill">${iconSvg(icon, { size: 12 })}<input type="checkbox" id="${id}"${
+      id.startsWith('auto') || id === 'look' || id === 'aura' ? ' checked' : ''
+    } /><span>${label}</span></label>`).join('')),
+  group('emblem', 'emblem',
+    `<select id="emblem"><option value="icon">icon</option><option value="item">hat / pet</option><option value="off">none</option></select>` +
+    `<button class="primary" id="btn-acts" aria-pressed="false">play all moves</button>`),
+].join('')
+
+/** Light the pill that matches the current value, in every wardrobe group. */
+function paintVisuals() {
+  for (const b of $('controls').querySelectorAll('[data-who]')) {
+    b.setAttribute('aria-pressed', String((who[b.dataset.who] || '') === b.dataset.val))
+  }
+  // A person keeps the head the illustrator drew and has no signature colour,
+  // so those two groups are not theirs to set.
+  for (const row of ['skull', 'color']) {
+    const grp = $('controls').querySelector(`[data-row="${row}"]`)
+    if (grp) grp.hidden = who.kind !== 'agent'
+  }
+}
+
+// One listener for the whole field: which kind of pill it was is a data
+// attribute, not a separate wiring.
+$('controls').addEventListener('click', (ev) => {
+  const slot = ev.target.closest('[data-who]')
+  if (slot) return setWho(slot.dataset.who, slot.dataset.val)
+
+  const state = ev.target.closest('[data-state]')
+  if (state) return selectState(state.dataset.state)
+
+  const expr = ev.target.closest('[data-expr]')
+  if (expr) {
+    const i = Number(expr.dataset.expr)
+    stopEyeTour()
+    drive('auto-expr', false)
+    both((a) => a.setExpression(i))
+    document.querySelectorAll('[data-expr]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === i)))
+    return
+  }
+
+  const act = ev.target.closest('[data-act]')
+  if (act) {
+    stopActTour()
+    playAct(ACT_BY_ID.get(act.dataset.act))
+  }
+})
 
 // ── Controls ────────────────────────────────────────────────────────────────
 function applyControls() {
@@ -191,7 +316,9 @@ function applyControls() {
 for (const id of ['spring', 'gx', 'gy', 'turn', 'scale', 'emphasis', 'auto-blink', 'auto-expr', 'auto-motion', 'mouse']) {
   $(id).addEventListener('input', applyControls)
 }
-for (const id of ['seed', 'kind', 'color', 'gender', 'age', 'emblem', 'look', 'aura']) {
+// The identity moved into `who` and its pills; only these three still live in
+// a control of their own.
+for (const id of ['emblem', 'look', 'aura']) {
   $(id).addEventListener('input', rebuild)
 }
 
@@ -254,11 +381,6 @@ let actTour = null
 let demoTimer = 0
 
 const pickFrom = (a) => a[Math.floor(Math.random() * a.length)]
-/** A vivid spread — agents are not people and their colour says so. */
-const AGENT_PALETTE = [
-  '#3B82F6', '#16A34A', '#9333EA', '#E36F3D', '#0E7490', '#BE185D',
-  '#EAB308', '#14B8A6', '#F43F5E', '#8B5CF6', '#06B6D4', '#84CC16',
-]
 const roll = (p) => Math.random() < p
 
 /**
@@ -296,26 +418,26 @@ function drive(id, value, kind = 'input') {
 
 /** Move one thing in the Who row, so it is obvious which field owns what. */
 function driveIdentity() {
-  const agent = $('kind').value === 'agent'
+  const agent = who.kind === 'agent'
   const fields = [
-    () => drive('gender', pickFrom(['', 'female', 'male'])),
-    () => drive('age', roll(0.25) ? '' : String(18 + Math.floor(Math.random() * 62))),
-    () => drive('part-head', roll(0.2) ? '' : pickFrom(PARTS.head)),
-    () => drive('part-body', roll(0.2) ? '' : pickFrom(PARTS.body)),
-    () => drive('part-bottom', roll(0.2) ? '' : pickFrom(PARTS.bottom)),
-    () => drive('part-item', roll(0.35) ? '' : pickFrom(PARTS.item)),
-    () => drive('part-glasses', roll(0.5) ? '' : pickFrom(PARTS.glasses)),
-    () => drive('kind', agent ? 'customer' : 'agent'),
+    () => setWho('gender', pickFrom(['', 'female', 'male'])),
+    () => setWho('age', roll(0.25) ? '' : pickFrom(['22', '31', '44', '57', '68', '79'])),
+    () => setWho('head', roll(0.2) ? '' : pickFrom(PARTS.head)),
+    () => setWho('body', roll(0.2) ? '' : pickFrom(PARTS.body)),
+    () => setWho('bottom', roll(0.2) ? '' : pickFrom(PARTS.bottom)),
+    () => setWho('item', roll(0.35) ? '' : pickFrom(PARTS.item)),
+    () => setWho('glasses', roll(0.5) ? '' : pickFrom(PARTS.glasses)),
+    () => setWho('kind', agent ? 'customer' : 'agent'),
   ]
   if (agent) {
-    fields.push(() => drive('part-skull', roll(0.25) ? '' : pickFrom(SKULL_NAMES)))
-    fields.push(() => drive('color', pickFrom(AGENT_PALETTE)))
+    fields.push(() => setWho('skull', roll(0.25) ? '' : pickFrom(SKULL_NAMES)))
+    fields.push(() => setWho('color', pickFrom(AGENT_PALETTE)))
   }
   pickFrom(fields)()
 }
 
 function demoBeat() {
-  const agent = $('kind').value === 'agent'
+  const agent = who.kind === 'agent'
   // Always something visible in the expression row.
   const expr = Math.floor(Math.random() * RINGS.length)
   both((a) => a.engine?.setExpression(expr))
@@ -367,7 +489,7 @@ function demoBeat() {
 let facesTimer = 0
 
 function facesBeat() {
-  const agent = $('kind').value === 'agent'
+  const agent = who.kind === 'agent'
   const expr = Math.floor(Math.random() * RINGS.length)
   both((a) => a.engine?.setExpression(expr))
   document.querySelectorAll('[data-expr]').forEach((b) =>
@@ -474,10 +596,6 @@ function startEyeTour() {
 // One button per act, plus a runner that plays the lot back to back. The note
 // under the grid says what each one is FOR, because "orbit" and "narrow" mean
 // nothing until you have seen them once.
-$('act-grid').innerHTML = EYE_ACTS.map(
-  (a) => `<button data-act="${a.id}" title="${a.label}">${a.id}</button>`,
-).join('')
-
 function playAct(a) {
   $('act-note').textContent = `${a.label} · ${a.dur.toFixed(1)} s — ${a.note}`
   // Also on the stage caption, so it reads while you are watching the avatars
@@ -486,12 +604,6 @@ function playAct(a) {
   document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.act === a.id)))
   both((av) => av.playAct(a.id))
 }
-$('act-grid').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('button[data-act]')
-  if (!btn) return
-  stopActTour()
-  playAct(ACT_BY_ID.get(btn.dataset.act))
-})
 
 function stopActTour() {
   if (actTour) clearTimeout(actTour)
@@ -531,18 +643,6 @@ $('btn-reset').onclick = () => {
   for (const id of ['auto-blink', 'auto-expr', 'auto-motion']) $(id).checked = true
   applyControls()
 }
-// ── Switch icons ────────────────────────────────────────────────────────────
-// Every toggle gets a drawn mark from the same set the emblems use, so the row
-// scans as symbols first and words second — and the mark takes the highlight
-// colour with the rest of the pill, because it is `currentColor`.
-for (const [id, icon] of Object.entries({
-  mouse: 'eye', emphasis: 'spark', look: 'sun', aura: 'orbit',
-  'auto-blink': 'ear', 'auto-expr': 'star', 'auto-motion': 'signal',
-})) {
-  const pill = $(id)?.closest('.pill')
-  if (pill) pill.insertAdjacentHTML('afterbegin', iconSvg(icon, { size: 12 }))
-}
-
 // ── Adopt ───────────────────────────────────────────────────────────────────
 // Click a face anywhere on the page and it becomes the person on the stage,
 // with every control set to the values that built them. The panel is then a
@@ -550,16 +650,14 @@ for (const [id, icon] of Object.entries({
 // made" without guessing.
 function adopt(v, { keepDemo = false } = {}) {
   if (!keepDemo) setDemo(false)
-  $('seed').value = v.seed || ''
-  $('kind').value = v.kind || 'agent'
-  if (v.color) $('color').value = v.color
-  $('gender').value = v.gender || ''
-  $('age').value = v.age ? String(v.age) : ''
-  if ($('part-skull')) $('part-skull').value = v.skull || ''
-  for (const slot of SLOTS) {
-    const el = $(`part-${slot}`)
-    if (el) el.value = v[slot] || ''
-  }
+  who.seed = v.seed || who.seed
+  who.kind = v.kind || 'agent'
+  if (v.color) who.color = v.color
+  who.gender = v.gender || ''
+  who.age = v.age ? String(v.age) : ''
+  who.skull = v.skull || ''
+  for (const slot of SLOTS) who[slot] = v[slot] || ''
+  paintVisuals()
   rebuild()
 }
 
@@ -568,70 +666,47 @@ function newPerson(opts) {
   adopt(randomVariation({}, { pinParts: true }), opts)
 }
 
-$('btn-random').onclick = () => newPerson()
+// Random is one throw of the whole machine: a new person AND a new state, a
+// new expression, new dials, new switches. Half a shuffle is not a shuffle.
+function randomiseEverything() {
+  setDemo(false)
+  setFaces(false)
+  fadeSwap(() => {
+    newPerson()
+    const state = pickFrom(STATES)
+    both((a) => a.setState(state))
+    document.querySelectorAll('[data-state]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.state === state)))
+    const expr = Math.floor(Math.random() * RINGS.length)
+    both((a) => a.engine?.setExpression(expr))
+    document.querySelectorAll('[data-expr]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === expr)))
+    drive('spring', (4 + Math.random() * 8).toFixed(1))
+    drive('gx', (Math.random() * 2 - 1).toFixed(2))
+    drive('gy', (Math.random() * 2 - 1).toFixed(2))
+    drive('scale', (0.6 + Math.random() * 1.1).toFixed(2))
+    drive('emphasis', roll(0.35))
+    drive('mouse', roll(0.3))
+    drive('look', roll(0.85))
+    drive('aura', roll(0.7))
+    drive('auto-blink', roll(0.9))
+    drive('auto-motion', roll(0.9))
+    drive('emblem', pickFrom(['icon', 'item', 'off']))
+  })
+}
+$('btn-random').onclick = randomiseEverything
 
-
-// ── Part pickers ────────────────────────────────────────────────────────────
-// Bare selects on the Who row, labelled by their tooltip. A field label above
-// every one of these doubled the height of the row and said nothing the option
-// text does not already say.
-$('part-pickers').innerHTML =
-  `<select id="part-skull" title="Skull — agents only">
-     <option value="">any skull</option>
-     <option value="none">drawn skull</option>
-     ${SKULL_NAMES.map((n) => `<option value="${n}">${n}</option>`).join('')}
-   </select>` +
-  SLOTS.map(
-    (slot) => `<select id="part-${slot}" title="${slot}">
-        <option value="">any ${slot}</option>
-        ${PARTS[slot].map((n) => `<option value="${n}">${n}</option>`).join('')}
-      </select>`,
-  ).join('')
-for (const slot of SLOTS) $(`part-${slot}`).addEventListener('input', rebuild)
-$('part-skull').addEventListener('input', rebuild)
-
-// ── Expression grid ─────────────────────────────────────────────────────────
-// Same pills as the states, with the two sets labelled the same way the state
-// groups are — so the eye reads one language across the whole panel.
-$('expr-grid').innerHTML =
-  `<span class="group-label">generated</span>` +
-  RINGS.map((_, i) => {
-    const label = EXPRESSION_NAMES[i].replace(/^bloub /, '')
-    return (i === BLOUB_FIRST ? '<span class="group-label">bloub</span>' : '') +
-      `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}">${label}</button>`
-  }).join('')
-$('expr-grid').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('button[data-expr]')
-  if (!btn) return
-  const i = Number(btn.dataset.expr)
-  stopEyeTour()
-  $('auto-expr').checked = false
-  applyControls()
-  both((a) => a.setExpression(i))
-  document.querySelectorAll('[data-expr]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === i)))
-})
 
 // ── State picker ────────────────────────────────────────────────────────────
 // One flowing row: a category label, its pills, the next label, its pills. The
 // old version put every category on its own line, which pushed half the states
 // off the screen for no reason but tidiness.
-$('state-groups').innerHTML = STATE_GROUPS.map(
-  (g) => `<span class="group-label">${g.label}</span>${g.states
-    .map((s) => {
-      const [icon] = emblemFor(s)
-      return `<button data-state="${s}" aria-pressed="${s === 'idle'}">${
-        icon ? iconSvg(icon, { size: 13 }) : ''
-      }${s}</button>`
-    })
-    .join('')}`,
-).join('')
-
 function selectState(state) {
   if (live.hasAttribute('demo')) setDemo(false)
   both((a) => a.setState(state))
   document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === state)))
 }
-$('state-groups').addEventListener('click', (ev) => {
+$('controls').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-state]')
   if (btn) selectState(btn.dataset.state)
 })

@@ -180,3 +180,33 @@ const POOL = [
 export function skullForSeed(hashValue) {
   return POOL[hashValue % POOL.length]
 }
+
+/**
+ * How wide the shape is at a given height, as a fraction of its half-width.
+ *
+ * A round face is as wide at the eyes as it is anywhere. A triangle is not —
+ * point-down, it has lost most of its width by the time you reach the mouth,
+ * and an eye allowed to travel a round face's distance walks straight out of
+ * it. This is what the eye clamp needs to know, and it is cheap: sample the
+ * profile once and take the widest point near that row.
+ *
+ * @param {string} name   a key of SKULL_SHAPES
+ * @param {number} yNorm  height, -1 at the crown to +1 at the chin
+ * @returns {number} 0–1, where 1 is as wide as the shape ever gets
+ */
+export function halfWidthAt(name, yNorm) {
+  const shape = SKULL_SHAPES[name]
+  if (!shape) return 1
+  let widest = 0
+  let here = 0
+  for (let i = 0; i < 720; i++) {
+    const t = (i / 720) * Math.PI * 2
+    const r = shape.r(t, 0)
+    const x = Math.abs(Math.cos(t) * r)
+    const y = Math.sin(t) * r
+    if (x > widest) widest = x
+    if (Math.abs(y - yNorm) < 0.06 && x > here) here = x
+  }
+  if (!widest) return 1
+  return Math.max(0.25, here / widest)
+}

@@ -230,7 +230,10 @@ export const TALK = {
 export const KIND_PROFILE = {
   customer: {
     turnMode: 'slide',
-    turnLimit: (14 * Math.PI) / 180,
+    // A person turns less than an agent on the same head. The FACE decides
+    // the outer limit now (see faceFrom); this only keeps a person inside a
+    // little more than half of it.
+    turnLimit: (26 * Math.PI) / 180,
     // How much of the sphere projection a face gets (motion/sphere.js), split
     // into the eye's SHAPE and its PLACEMENT.
     //
