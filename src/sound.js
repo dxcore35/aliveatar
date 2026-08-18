@@ -197,6 +197,7 @@ function playSound(patch, context) {
 let ctx = null
 let master = null
 let armed = false
+let muted = false
 let last = 0
 
 /** Smallest gap between two taps, in ms. Faces arrive faster than that. */
@@ -218,15 +219,47 @@ export function enableSound() {
   if (!ctx) return false
   if (ctx.state === 'suspended') ctx.resume()
   armed = true
+  muted = false
   return true
 }
 
 export function disableSound() {
+  muted = true
   armed = false
 }
 
 export function soundOn() {
   return armed
+}
+
+/**
+ * The node every tap passes through, and the context it lives in.
+ *
+ * Exposed so a host page can route the sound somewhere else, and so the
+ * volume can be checked rather than assumed.
+ */
+export function output() {
+  return { context: ctx, node: master, volume: master ? master.gain.value : null, state: ctx ? ctx.state : 'none' }
+}
+
+// A browser will not start audio without a gesture, but it does not care WHICH
+// gesture. The first click or key anywhere on the page is enough, so sound
+// starts by itself the moment somebody touches the page — no hunting for a
+// button. Pressing the button off sets `muted`, and that decision sticks.
+function firstGesture() {
+  if (!muted) enableSound()
+  onArmed?.()
+}
+for (const type of ['pointerdown', 'keydown', 'touchstart']) {
+  addEventListener(type, firstGesture, { once: false, passive: true })
+}
+
+/** Called after the first gesture, so the page can update its own button. */
+let onArmed = null
+export function whenArmed(fn) {
+  onArmed = fn
+  // Some browsers hand out a running context before any gesture at all.
+  if (ctx && ctx.state === 'running') fn()
 }
 
 /** One tap. Silent until enabled, and never more often than FLOOR. */

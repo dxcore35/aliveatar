@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 import './avatar-motion.js'
 import { randomVariation, applyVariation } from './variation.js'
-import { tap, enableSound, disableSound, soundOn } from './sound.js'
+import { tap, enableSound, disableSound, soundOn, whenArmed } from './sound.js'
 
 const $ = (id) => document.getElementById(id)
 
@@ -42,14 +42,20 @@ cmd.addEventListener('click', async () => {
 // browser blocks it anyway until the visitor has clicked something — so the
 // click on this button is both the permission and the gesture.
 const soundBtn = $('sound')
-soundBtn.addEventListener('click', () => {
-  if (soundOn()) disableSound()
-  else enableSound()
+function paintSound() {
   const on = soundOn()
   soundBtn.setAttribute('aria-pressed', String(on))
   soundBtn.setAttribute('aria-label', on ? 'Sound on' : 'Sound off')
   $('sound-glyph').innerHTML = on ? '&#9835;' : '&#9834;'
+}
+soundBtn.addEventListener('click', () => {
+  if (soundOn()) disableSound()
+  else enableSound()
+  paintSound()
 })
+// Sound starts itself on the first click anywhere, so the button has to catch
+// up on its own rather than wait to be pressed.
+whenArmed(paintSound)
 
 // ── the stream ──────────────────────────────────────────────────────────────
 const stage = $('stage')
