@@ -244,8 +244,7 @@ $('controls').innerHTML = [
       id.startsWith('auto') || id === 'look' || id === 'aura' ? ' checked' : ''
     } /><span>${label}</span></label>`).join('')),
   group('emblem', 'emblem',
-    `<select id="emblem"><option value="icon">icon</option><option value="item">hat / pet</option><option value="off">none</option></select>` +
-    `<button class="primary" id="btn-acts" aria-pressed="false">play all moves</button>`),
+    `<select id="emblem"><option value="icon">icon</option><option value="item">hat / pet</option><option value="off">none</option></select>`),
 ].join('')
 
 /** Light the pill that matches the current value, in every wardrobe group. */
@@ -253,11 +252,12 @@ function paintVisuals() {
   for (const b of $('controls').querySelectorAll('[data-who]')) {
     b.setAttribute('aria-pressed', String((who[b.dataset.who] || '') === b.dataset.val))
   }
-  // A person keeps the head the illustrator drew and has no signature colour,
-  // so those two groups are not theirs to set.
+  // A person keeps the head the illustrator drew and has no signature colour.
+  // Those two groups used to vanish, which moved every pill after them and made
+  // the colours look like they came and went. They stay put and go quiet.
   for (const row of ['skull', 'color']) {
     const grp = $('controls').querySelector(`[data-row="${row}"]`)
-    if (grp) grp.hidden = who.kind !== 'agent'
+    if (grp) grp.classList.toggle('muted', who.kind !== 'agent')
   }
 }
 
@@ -489,7 +489,6 @@ function demoBeat() {
 let facesTimer = 0
 
 function facesBeat() {
-  const agent = who.kind === 'agent'
   const expr = Math.floor(Math.random() * RINGS.length)
   both((a) => a.engine?.setExpression(expr))
   document.querySelectorAll('[data-expr]').forEach((b) =>
@@ -501,13 +500,8 @@ function facesBeat() {
     document.querySelectorAll('[data-state]').forEach((b) =>
       b.setAttribute('aria-pressed', String(b.dataset.state === state)))
   }
-  if (roll(0.45)) {
-    const act = pickFrom(EYE_ACTS)
-    both((a) => a.playAct(act.id))
-    document.querySelectorAll('[data-act]').forEach((b) =>
-      b.setAttribute('aria-pressed', String(b.dataset.act === act.id)))
-  }
-  if (roll(0.35) && agent) both((a) => a.runTool(TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length], 4200))
+  // No tool calls here on purpose. This mode is the FACE: glasses, a bubble and
+  // a running outfit colour are the machine talking, not the face.
   if (roll(0.5)) { drive('gx', (Math.random() * 2 - 1).toFixed(2)); drive('gy', (Math.random() * 2 - 1).toFixed(2)) }
   if (roll(0.2)) both((a) => a.blink())
 
@@ -518,7 +512,7 @@ function setFaces(on) {
   if (on) setDemo(false)
   clearTimeout(facesTimer)
   $('btn-faces').setAttribute('aria-pressed', String(on))
-  $('btn-faces').textContent = on ? 'Stop' : 'Expressions'
+  $('btn-faces').textContent = on ? 'Stop' : 'Play expressions'
   if (on) facesTimer = setTimeout(facesBeat, 400)
 }
 $('btn-faces').onclick = () => setFaces($('btn-faces').getAttribute('aria-pressed') !== 'true')
@@ -609,7 +603,7 @@ function stopActTour() {
   if (actTour) clearTimeout(actTour)
   actTour = null
   $('btn-acts').setAttribute('aria-pressed', 'false')
-  $('btn-acts').textContent = '▶ Play all animations'
+  $('btn-acts').textContent = 'Play animations'
   $('demo-note').textContent = ''
   document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', 'false'))
 }
@@ -617,7 +611,7 @@ function startActTour() {
   setDemo(false)
   stopEyeTour()
   $('btn-acts').setAttribute('aria-pressed', 'true')
-  $('btn-acts').textContent = '■ Stop'
+  $('btn-acts').textContent = 'Stop'
   let i = 0
   const step = () => {
     if (i >= EYE_ACTS.length) return stopActTour()

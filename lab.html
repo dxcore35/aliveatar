@@ -87,15 +87,27 @@
       .meter { width: 110px; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
       .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 60ms linear; }
 
-      /* ── one field, groups marked by a wider gap ─────────────────────── */
-      .flow { row-gap: 5px; }
+      /* ── one field, sections divided by a rule ───────────────────────── */
+      /* `.chips` sets a 4px gap in shorthand and is declared later, so this
+         has to out-specify it rather than merely follow it. */
+      .chips.flow { row-gap: 10px; column-gap: 4px; }
       /* A group is not a box — it contributes its label and its pills straight
          into the parent's wrap, so a line can hold the end of one group and the
          start of the next. */
       .grp { display: contents; }
       .grp[hidden] { display: none; }
-      .flow .group-label { padding-left: 26px; }
-      .flow > .grp:first-child .group-label { padding-left: 0; }
+      /* The label carries the divider: a hairline down its left edge. A gap
+         alone was not enough to see where one section ended, and a full-width
+         rule would force every section onto its own line — which is the layout
+         this replaced. */
+      .chips.flow .group-label {
+        margin-left: 12px; padding: 3px 12px 3px 14px;
+        border-left: 1px solid var(--line);
+      }
+      .chips.flow > .grp:first-child .group-label { margin-left: 0; border-left: 0; padding-left: 0; }
+      /* A group that does not apply to this avatar stays in place and goes
+         quiet, so the field never reflows under the pointer. */
+      .grp.muted { opacity: 0.32; pointer-events: none; }
       /* A colour is quicker to recognise than its hex, so the swatch IS the
          label. */
 
@@ -238,7 +250,8 @@
 
         <div class="actions">
           <button class="primary" id="btn-demo" aria-pressed="false">Demo</button>
-          <button id="btn-faces" aria-pressed="false">Expressions</button>
+          <button id="btn-faces" aria-pressed="false">Play expressions</button>
+          <button id="btn-acts" aria-pressed="false">Play animations</button>
           <button id="btn-random">Random</button>
           <button id="btn-gallery" aria-pressed="false">Gallery</button>
           <button id="btn-reset">Reset</button>
