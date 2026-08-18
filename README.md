@@ -103,10 +103,10 @@ tts.speak(clean)  // tags stripped; the face is cued across the utterance
 
 ## Driving it from an app
 
-One entry point, plain JSON in, events out. Deliberately **not** MCP: MCP exists
-so a *model* can discover and call tools, and this is a UI component being
-driven by an app that already knows what it wants. If you do want MCP later,
-`MANIFEST` is already the tool list.
+One entry point, plain JSON in, events out. This is the layer for an app that
+already knows what it wants; an AI agent that has to discover the surface first
+should use the MCP server in the next section, which is generated from this
+same manifest.
 
 ```js
 avatar.send({ type: 'state', state: 'listening' })
@@ -117,7 +117,7 @@ avatar.addEventListener('avatar-event', (e) => console.log(e.detail.name))
 avatar.send({ type: 'manifest' })   // every command, discoverable at runtime
 ```
 
-15 commands, 8 events. Unknown commands come back as an `error` event rather
+18 commands, 8 events. Unknown commands come back as an `error` event rather
 than throwing — a control channel that can crash the UI is not a control
 channel.
 
