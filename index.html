@@ -112,7 +112,7 @@
 
       /* ── what it plugs into: one word each, nothing more ─────────── */
       .badges {
-        list-style: none; margin: 0; padding: 0;
+        list-style: none; margin: 0 auto; padding: 0;
         align-items: center;
         display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
         font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
@@ -129,10 +129,7 @@
         display: flex; align-items: center; justify-content: center;
         gap: 8px 14px; flex-wrap: wrap; padding: 14px 22px;
       }
-      .lic {
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-        font-size: 0.72rem; color: var(--muted);
-      }
+
 
       @media (max-width: 620px) {
         .stream-copy { gap: 13px; padding: 18px; }
@@ -145,7 +142,6 @@
     <nav>
       <span class="wordmark">avatar&#8209;motion</span>
       <span class="links">
-        <a href="./lab.html">Lab</a>
         <a href="https://github.com/dxcore35/avatar-motion">GitHub</a>
       </span>
     </nav>
@@ -158,7 +154,7 @@
         <p class="count"><b id="stream-count">0</b> made since you arrived</p>
 
         <h1>Avatars that are alive</h1>
-        <p class="lede">It never runs out of people.</p>
+        <p class="lede">It never runs out of people or agents 🙂</p>
 
         <button class="cmd" id="cmd" aria-label="Copy: bun add github:dxcore35/avatar-motion">
           <span class="sigil" aria-hidden="true">$</span>
@@ -180,9 +176,7 @@
         <li>Web Component</li>
         <li>React</li>
         <li>Vue</li>
-        <li>Zero deps</li>
       </ul>
-      <span class="lic">MIT</span>
     </footer>
 
     <script type="module" src="./src/site.js"></script>
