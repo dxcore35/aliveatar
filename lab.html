@@ -67,6 +67,8 @@
       .stage-avatars {
         display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px; width: 100%; max-width: 760px;
+        /* Both panels fade as one, so a change never lands on one side first. */
+        opacity: 1; transition: opacity 0.26s ease;
       }
       .figure { display: grid; gap: 7px; justify-items: center; }
       .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
@@ -125,7 +127,7 @@
       .chips button:hover, .pill:hover {
         color: var(--ink); border-color: color-mix(in oklab, var(--muted) 45%, transparent);
       }
-      .chips button svg { flex: none; opacity: 0.65; color: inherit; }
+      .chips button svg, .pill svg { flex: none; opacity: 0.65; color: inherit; }
 
       /* Selected is a tinted capsule, not a solid block: a wash of the avatar's
          colour, a brighter ring of it, the label in it, and a soft bloom
@@ -144,7 +146,8 @@
         border-color: var(--accent-ink);
         color: var(--accent-ink);
       }
-      .chips button[aria-pressed='true'] svg { opacity: 1 }
+      .chips button[aria-pressed='true'] svg,
+      .pill:has(input:checked) svg { opacity: 1 }
       .pill input { position: absolute; opacity: 0; pointer-events: none; }
       .group-label {
         font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em;
@@ -174,7 +177,10 @@
       .gallery-panel { padding-top: 12px; }
 
       /* ── crowd ──────────────────────────────────────────────────────── */
-      .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 4px; align-items: start; }
+      /* Fixed tiles, not stretchy ones: the row count has to be arithmetic for
+         the gallery to fit the window exactly. */
+      .gallery { display: grid; grid-template-columns: repeat(auto-fill, 72px); gap: 4px;
+                 justify-content: space-between; align-items: start; }
       .gallery .figure { justify-items: stretch; gap: 0; }
       .gallery .figure > .box { border-radius: 10px; width: 100%; height: auto; border: 1px solid var(--line); cursor: pointer; }
       .pager { display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px; }
@@ -216,7 +222,8 @@
         </div>
 
         <div class="actions">
-          <button class="primary" id="btn-demo" aria-pressed="false">Change everything</button>
+          <button class="primary" id="btn-demo" aria-pressed="false">Demo</button>
+          <button id="btn-faces" aria-pressed="false">Expressions</button>
           <button id="btn-random">Random</button>
           <button id="btn-gallery" aria-pressed="false">Gallery</button>
           <button id="btn-reset">Reset</button>

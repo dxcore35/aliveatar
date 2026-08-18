@@ -21,11 +21,15 @@ const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
 const live = document.createElement('avatar-motion')
 live.style.cssText = 'width:100%;height:100%'
 live.setAttribute('theme', 'dark')
+// The fade between people is the transition; an arrival animation on top of it
+// makes the two panels look out of step.
+live.setAttribute('no-mount', '')
 $('box-live').appendChild(live)
 
 const lightTwin = document.createElement('avatar-motion')
 lightTwin.style.cssText = 'width:100%;height:100%'
 lightTwin.setAttribute('theme', 'light')
+lightTwin.setAttribute('no-mount', '')
 // Both panels get the aura. It behaves differently against a light page than a
 // dark one, which is exactly the thing this comparison exists to show.
 $('box-light').appendChild(lightTwin)
@@ -257,6 +261,30 @@ const AGENT_PALETTE = [
 ]
 const roll = (p) => Math.random() < p
 
+/**
+ * Change who is on the stage behind a fade.
+ *
+ * Rebuilding the avatar swaps the whole drawing at once, which reads as a
+ * flicker. Both panels fade out together, change together, and come back
+ * together — so the dark and the light one are never a frame apart, and the
+ * arrival animation never fires mid-demo.
+ */
+let fading = false
+function fadeSwap(change) {
+  const stage = document.querySelector('.stage-avatars')
+  if (!stage || fading) return change()
+  fading = true
+  stage.style.opacity = '0'
+  setTimeout(() => {
+    change()
+    // Two frames: one for the rebuild to land, one for the paint.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      stage.style.opacity = '1'
+      fading = false
+    }))
+  }, 260)
+}
+
 /** Set a control and let its own listener do the work. */
 function drive(id, value, kind = 'input') {
   const el = $(id)
@@ -321,21 +349,67 @@ function demoBeat() {
   // Who changes too, one field at a time. A whole new stranger every beat is
   // just a slideshow; moving ONE dropdown and leaving the rest is what shows
   // which dropdown did what.
-  driveIdentity()
-  if (roll(0.5)) driveIdentity()
-  if (roll(0.1)) newPerson({ keepDemo: true })
+  fadeSwap(() => {
+    driveIdentity()
+    if (roll(0.5)) driveIdentity()
+    if (roll(0.1)) newPerson({ keepDemo: true })
+  })
 
-  demoTimer = setTimeout(demoBeat, 1800 + Math.random() * 1800)
+  // At least four seconds on screen: a change you cannot finish looking at
+  // is a change you did not see.
+  demoTimer = setTimeout(demoBeat, 4000 + Math.random() * 1600)
 }
+
+// ── Expressions only ────────────────────────────────────────────────────────
+// The same character, over and over, doing different things. Nothing about WHO
+// they are moves — no seed, no parts, no colour — so what you are watching is
+// the range of the face rather than the range of the wardrobe.
+let facesTimer = 0
+
+function facesBeat() {
+  const agent = $('kind').value === 'agent'
+  const expr = Math.floor(Math.random() * RINGS.length)
+  both((a) => a.engine?.setExpression(expr))
+  document.querySelectorAll('[data-expr]').forEach((b) =>
+    b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === expr)))
+
+  if (roll(0.55)) {
+    const state = pickFrom(STATES)
+    both((a) => a.setState(state))
+    document.querySelectorAll('[data-state]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.state === state)))
+  }
+  if (roll(0.45)) {
+    const act = pickFrom(EYE_ACTS)
+    both((a) => a.playAct(act.id))
+    document.querySelectorAll('[data-act]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.act === act.id)))
+  }
+  if (roll(0.35) && agent) both((a) => a.runTool(TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length], 4200))
+  if (roll(0.5)) { drive('gx', (Math.random() * 2 - 1).toFixed(2)); drive('gy', (Math.random() * 2 - 1).toFixed(2)) }
+  if (roll(0.2)) both((a) => a.blink())
+
+  facesTimer = setTimeout(facesBeat, 4000 + Math.random() * 1600)
+}
+
+function setFaces(on) {
+  if (on) setDemo(false)
+  clearTimeout(facesTimer)
+  $('btn-faces').setAttribute('aria-pressed', String(on))
+  $('btn-faces').textContent = on ? 'Stop' : 'Expressions'
+  if (on) facesTimer = setTimeout(facesBeat, 400)
+}
+$('btn-faces').onclick = () => setFaces($('btn-faces').getAttribute('aria-pressed') !== 'true')
 
 function setDemo(on) {
   if (on && eyeTour) stopEyeTour()
   if (on && actTour) stopActTour()
   $('btn-demo').setAttribute('aria-pressed', String(on))
-  $('btn-demo').textContent = on ? 'Stop' : 'Change everything'
+  $('btn-demo').textContent = on ? 'Stop' : 'Demo'
   $('turn').disabled = on
   clearTimeout(demoTimer)
   if (on) {
+    setFaces(false)
     live.startDemo()
     demoTimer = setTimeout(demoBeat, 700)
   } else {
@@ -457,6 +531,18 @@ $('btn-reset').onclick = () => {
   for (const id of ['auto-blink', 'auto-expr', 'auto-motion']) $(id).checked = true
   applyControls()
 }
+// ── Switch icons ────────────────────────────────────────────────────────────
+// Every toggle gets a drawn mark from the same set the emblems use, so the row
+// scans as symbols first and words second — and the mark takes the highlight
+// colour with the rest of the pill, because it is `currentColor`.
+for (const [id, icon] of Object.entries({
+  mouse: 'eye', emphasis: 'spark', look: 'sun', aura: 'orbit',
+  'auto-blink': 'ear', 'auto-expr': 'star', 'auto-motion': 'signal',
+})) {
+  const pill = $(id)?.closest('.pill')
+  if (pill) pill.insertAdjacentHTML('afterbegin', iconSvg(icon, { size: 12 }))
+}
+
 // ── Adopt ───────────────────────────────────────────────────────────────────
 // Click a face anywhere on the page and it becomes the person on the stage,
 // with every control set to the values that built them. The panel is then a
@@ -593,10 +679,21 @@ setInterval(() => {
 // not a crowd, it is a screensaver.
 
 const gallery = $('gallery')
-// Enough to fill the space the drawer takes over. Fifty left three quarters of
-// the screen empty, which reads as "that is all of them" — the opposite of the
-// point.
-const PER_PAGE = 120
+// How many fit, rather than a number somebody picked. The gallery fills the
+// space it is given and not one row more, so opening it never makes the page
+// taller and never scrolls anything.
+const TILE = 72
+const GAP = 4
+let PER_PAGE = 120
+
+function fitPage() {
+  const box = gallery.getBoundingClientRect()
+  const cols = Math.max(1, Math.floor((gallery.clientWidth + GAP) / (TILE + GAP)))
+  // Leave the pager and its margin room at the bottom of the window.
+  const room = window.innerHeight - box.top - 62
+  const rows = Math.max(1, Math.floor((room + GAP) / (TILE + GAP)))
+  return cols * rows
+}
 /** page number → the fifty variations that page holds */
 const pages = new Map()
 let page = 1
@@ -620,7 +717,6 @@ function crowdTile(v) {
   box.addEventListener('click', () => {
     adopt(v)
     setGallery(false)
-    document.querySelector('.stage')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   })
   // Fifty at once means the tile is small, and a caption under a small tile is
   // two lines of wrapped type per face. The detail moves to the tooltip so the
@@ -631,10 +727,12 @@ function crowdTile(v) {
 }
 
 function peopleFor(n) {
-  if (!pages.has(n)) {
-    pages.set(n, Array.from({ length: PER_PAGE }, () => randomVariation({}, { pinParts: true })))
-  }
-  return pages.get(n)
+  const held = pages.get(n)
+  if (held && held.length >= PER_PAGE) return held.slice(0, PER_PAGE)
+  const grown = held || []
+  while (grown.length < PER_PAGE) grown.push(randomVariation({}, { pinParts: true }))
+  pages.set(n, grown)
+  return grown
 }
 
 /**
@@ -671,7 +769,6 @@ $('crowd-pager')?.addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-page]')
   if (!btn || btn.disabled) return
   showPage(Number(btn.dataset.page))
-  gallery.scrollIntoView({ block: 'start', behavior: 'smooth' })
 })
 
 showPage(1)
@@ -688,8 +785,23 @@ function setGallery(open) {
   $('tab-drive').hidden = open
   $('btn-gallery').setAttribute('aria-pressed', String(open))
   $('btn-gallery').textContent = open ? 'Close gallery' : 'Gallery'
-  if (open) drawer.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  // Measure AFTER it is on screen — a hidden element has no width, and asking
+  // one how many tiles fit gets you a single column.
+  if (open) {
+    PER_PAGE = fitPage()
+    showPage(page)
+  }
 }
+
+// The window changing size changes how many fit, so the page refills rather
+// than leaving a gap or spilling over the fold.
+addEventListener('resize', () => {
+  if (drawer.hidden) return
+  const next = fitPage()
+  if (next === PER_PAGE) return
+  PER_PAGE = next
+  showPage(page)
+})
 $('btn-gallery').onclick = () => setGallery(drawer.hidden)
 
 // ── Go ──────────────────────────────────────────────────────────────────────
