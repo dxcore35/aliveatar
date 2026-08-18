@@ -96,15 +96,21 @@
          start of the next. */
       .grp { display: contents; }
       .grp[hidden] { display: none; }
-      /* The label carries the divider: a hairline down its left edge. A gap
-         alone was not enough to see where one section ended, and a full-width
-         rule would force every section onto its own line — which is the layout
-         this replaced. */
+      /* The label IS the divider.
+         A hairline alone did not read as a boundary — it looked like part of
+         the pill next to it. So the label takes the avatar's own colour, gets
+         a rule under it, and keeps the gap. Three signals for one boundary is
+         not excess here: this row is 226 pills long. */
       .chips.flow .group-label {
-        margin-left: 12px; padding: 3px 12px 3px 14px;
-        border-left: 1px solid var(--line);
+        margin: 0 4px 0 16px;
+        padding: 2px 2px 3px;
+        color: var(--accent-ink);
+        border-bottom: 1.5px solid color-mix(in oklab, var(--accent-ink) 55%, transparent);
+        font-weight: 600;
       }
-      .chips.flow > .grp:first-child .group-label { margin-left: 0; border-left: 0; padding-left: 0; }
+      .chips.flow > .grp:first-child .group-label { margin-left: 0; }
+      /* A muted group's label must not shout in the avatar's colour. */
+      .grp.muted .group-label { color: var(--muted); border-bottom-color: var(--line); }
       /* A group that does not apply to this avatar stays in place and goes
          quiet, so the field never reflows under the pointer. */
       .grp.muted { opacity: 0.32; pointer-events: none; }

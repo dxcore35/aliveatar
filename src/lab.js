@@ -790,7 +790,12 @@ function crowdTile(v) {
   // Fifty at once means the tile is small, and a caption under a small tile is
   // two lines of wrapped type per face. The detail moves to the tooltip so the
   // grid is faces and nothing else.
-  fig.title = v.kind === 'agent' ? `${v.state} · ${v.skull} · ${v.seed}` : `${v.state}${v.age ? ` · ${v.age}` : ''} · ${v.seed}`
+  // The tooltip names them. A seed is an id; a name is a person, and the
+  // gallery is where you are choosing one.
+  const name = nameFor(v.seed, { kind: v.kind, gender: v.gender })
+  fig.title = v.kind === 'agent'
+    ? `${name} · ${v.state} · ${v.skull || 'any'} head`
+    : `${name} · ${v.state}${v.age ? ` · ${v.age}` : ''}`
   fig.append(box)
   return fig
 }
