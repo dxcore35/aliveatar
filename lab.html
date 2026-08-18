@@ -50,14 +50,18 @@
         gap: 20px; flex-wrap: wrap; padding: 14px 0 12px;
       }
       .back {
+        position: absolute; top: 14px; left: 14px; z-index: 3;
         font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
         text-decoration: none; letter-spacing: 0.04em;
         border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
+        background: color-mix(in oklab, var(--raised) 80%, transparent);
+        backdrop-filter: blur(4px);
       }
       .back:hover { color: var(--ink); border-color: var(--ink); }
 
       /* ── the centrepiece ────────────────────────────────────────────── */
       .stage {
+        position: relative;
         display: grid; gap: 14px; justify-items: center;
         padding: 22px 20px 20px; margin-bottom: 16px;
         border: 1px solid var(--line); border-radius: 20px; background: var(--raised);
@@ -239,12 +243,11 @@
   </head>
   <body>
     <div class="frame">
-      <header>
-        <a class="back" href="./">&#8592; Back</a>
-      </header>
-
       <!-- ── The centrepiece: one person, both themes ─────────────────── -->
       <section class="stage">
+        <!-- Back sits in the empty upper-left of the card, not on a row of
+             its own above it. -->
+        <a class="back" href="./">&#8592; Back</a>
         <div class="stage-avatars">
           <div class="box theme-dark" id="box-live"></div>
           <div class="box theme-light" id="box-light"></div>
