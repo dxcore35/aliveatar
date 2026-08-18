@@ -161,7 +161,6 @@ function rebuild() {
   // An agent's signature colour IS its skin; a person has none, so the hair is
   // the one colour that is theirs and not everybody's.
   paintAccent(cfg.kind === 'agent' ? cfg.color : built.colors.hair)
-  $('r-cut').textContent = String(built.strippedEyes)
   // The slider takes the range the FACE allows, measured from where its eyes
   // sit on the sphere. A person turns less than an agent, so their share of it
   // is smaller — but both numbers come from the drawing, not from a constant.
@@ -708,36 +707,6 @@ $('controls').addEventListener('click', (ev) => {
   if (btn) selectState(btn.dataset.state)
 })
 
-// ── Readout ─────────────────────────────────────────────────────────────────
-// The frame counter is the honest part of the claim that this is cheap: it
-// counts real frames on a page that is animating every avatar you can see.
-let frames = 0
-let fpsMark = performance.now()
-let fps = 0
-;(function count() {
-  frames++
-  const now = performance.now()
-  if (now - fpsMark > 500) {
-    fps = Math.round((frames * 1000) / (now - fpsMark))
-    frames = 0
-    fpsMark = now
-  }
-  requestAnimationFrame(count)
-})()
-
-setInterval(() => {
-  const e = live.engine
-  if (!e) return
-  $('r-state').textContent = e.state
-  $('r-expr').textContent = String(e.expression).padStart(2, '0')
-  $('r-turn').textContent = `${((e.turn * 180) / Math.PI).toFixed(0)}°`
-  $('r-fps').textContent = String(fps)
-  $('r-active').textContent = String(activeCount())
-  $('r-total').textContent = String(totalCount())
-  $('r-aura').textContent = String(
-    [...document.querySelectorAll('alive-avatar')].filter((a) => a.engine?.auraSlot).length,
-  )
-}, 400)
 
 
 // ── Crowd — fifty at a time, forever ────────────────────────────────────────

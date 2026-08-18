@@ -8,3 +8,5 @@ node_modules/
 # A local checkout of bloub, kept for reference while porting the eye engine.
 # Not part of the product; the credit lives in LICENSE.
 reference/
+.vercel
+.env*
