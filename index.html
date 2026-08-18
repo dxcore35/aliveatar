@@ -401,9 +401,16 @@
             <section class="panel">
               <h3>Different people, different states, one engine</h3>
               <p class="note">
-                Every tile is its own seed and its own state, animating
-                independently. Hover a tile to make those eyes follow you.
+                Infinite. Keep scrolling and new people are generated as you go —
+                a fresh seed, kind, colour, head shape, age and state each time.
+                Tiles far above are recycled, so the list stays endless without
+                the page growing. Hover one to make those eyes follow you.
               </p>
+              <div class="row" style="margin-bottom:10px;align-items:center">
+                <button id="crowd-more">Generate more</button>
+                <button id="crowd-reset">Start over</button>
+                <span class="note" id="crowd-count"></span>
+              </div>
               <div class="gallery" id="gallery"></div>
             </section>
           </section>

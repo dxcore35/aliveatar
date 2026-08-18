@@ -10,6 +10,7 @@ import { STATES } from './states.js'
 import { activeCount, totalCount } from './core/ticker.js'
 import { iconSvg, ICON_NAMES } from './render/icons.js'
 import { emblemFor } from './render/emblem.js'
+import { randomVariation, applyVariation, SPACE } from './variation.js'
 
 const $ = (id) => document.getElementById(id)
 const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
@@ -557,37 +558,94 @@ $('emblemsheet').innerHTML = STATES.map((state) => {
   return `<div class="iconcell">${iconSvg(icon, { size: 26 })}<span class="glyph">${glyph || ''}</span><span>${state}</span></div>`
 }).join('')
 
-// ── Crowd ───────────────────────────────────────────────────────────────────
-const CROWD = [
-  ['agent:reception-01', 'agent', '#3B82F6', 'listening'],
-  ['agent:triage-02', 'agent', '#16A34A', 'thinking'],
-  ['agent:booking-03', 'agent', '#9333EA', 'working'],
-  ['agent:sales-04', 'agent', '#E36F3D', 'excited'],
-  ['customer:1042', 'customer', '', 'curious'],
-  ['customer:2277', 'customer', '', 'happy'],
-  ['customer:3391', 'customer', '', 'confused'],
-  ['customer:4810', 'customer', '', 'sleeping'],
-  ['agent:night-05', 'agent', '#0E7490', 'drowsy'],
-  ['agent:alarm-06', 'agent', '#BE185D', 'alerting'],
-  ['customer:5523', 'customer', '', 'suspicious'],
-  ['customer:6634', 'customer', '', 'laughing'],
-]
-$('gallery').innerHTML = CROWD.map(
-  ([seed, kind, color, state]) =>
-    `<figure class="figure"><div class="box" data-crowd="${seed}|${kind}|${color}|${state}"></div><figcaption>${state}</figcaption></figure>`,
-).join('')
-for (const box of document.querySelectorAll('[data-crowd]')) {
-  const [seed, kind, color, state] = box.dataset.crowd.split('|')
+// ── Crowd — infinite ────────────────────────────────────────────────────────
+//
+// A fixed set of twelve showed that the engine runs. It could not show the one
+// thing a variation system has to prove: that it does not repeat. So this
+// generates people as you scroll, forever, and RECYCLES — tiles far above the
+// viewport are removed as new ones arrive, which is what keeps an endless list
+// from turning into an endless DOM.
+//
+// The shared ticker already stops anything off screen, so the cost of scrolling
+// is the tiles you can actually see, not the ones you have scrolled past.
+
+const gallery = $('gallery')
+const BATCH = 24
+/** Keep at most this many tiles alive; older ones are dropped from the top. */
+const WINDOW = 240
+let generated = 0
+
+function crowdTile(v) {
+  const fig = document.createElement('figure')
+  fig.className = 'figure'
+  const box = document.createElement('div')
+  box.className = 'box'
   const el = document.createElement('avatar-motion')
   el.style.cssText = 'width:100%;height:100%'
-  el.setAttribute('seed', seed)
-  el.setAttribute('kind', kind)
-  if (color) el.setAttribute('color', color)
-  el.setAttribute('state', state)
+  applyVariation(el, v)
+  el.setAttribute('emblem', 'icon')
+  // The WebGL pool is three deep for the whole page; a scrolling crowd must
+  // never try to claim one.
+  el.setAttribute('no-aura', '')
   box.appendChild(el)
   box.addEventListener('pointerenter', () => el.setAttribute('mouse-interactive', ''))
   box.addEventListener('pointerleave', () => el.removeAttribute('mouse-interactive'))
+  const cap = document.createElement('figcaption')
+  cap.textContent = v.kind === 'agent' ? `${v.state} · ${v.skull}` : `${v.state}${v.age ? ` · ${v.age}` : ''}`
+  fig.append(box, cap)
+  return fig
 }
+
+function growCrowd(n = BATCH) {
+  const frag = document.createDocumentFragment()
+  for (let i = 0; i < n; i++) {
+    frag.appendChild(crowdTile(randomVariation({}, { pinParts: true })))
+    generated++
+  }
+  gallery.insertBefore(frag, sentinel)
+  // Recycle from the top. Removing the element disconnects it, which unhooks it
+  // from the ticker and the observer — no bookkeeping needed here.
+  while (gallery.children.length - 1 > WINDOW) gallery.removeChild(gallery.firstElementChild)
+  const count = $('crowd-count')
+  if (count) count.textContent = `${generated} generated · ${gallery.children.length - 1} on screen`
+}
+
+// A sentinel at the end of the list: when it scrolls into view, make more.
+const sentinel = document.createElement('div')
+sentinel.style.cssText = 'grid-column:1/-1;height:1px'
+gallery.appendChild(sentinel)
+
+new IntersectionObserver(
+  (entries) => {
+    if (entries.some((e) => e.isIntersecting)) growCrowd()
+  },
+  { rootMargin: '600px' },
+).observe(sentinel)
+
+// Belt and braces. An observer needs a laid-out viewport to fire against, and
+// there are real cases where it never does — an embedded frame with no height,
+// a headless pane, a tab that was hidden the whole time the list grew. The
+// geometry check costs a rect read per scroll and covers all of them.
+let growing = false
+function maybeGrow() {
+  if (growing || gallery.closest('.tab-panel')?.hidden) return
+  const r = sentinel.getBoundingClientRect()
+  if (r.top - (window.innerHeight || 0) > 600) return
+  growing = true
+  growCrowd()
+  growing = false
+}
+addEventListener('scroll', maybeGrow, { passive: true })
+addEventListener('resize', maybeGrow)
+
+growCrowd(BATCH)
+
+$('crowd-more')?.addEventListener('click', () => growCrowd(BATCH))
+$('crowd-reset')?.addEventListener('click', () => {
+  ;[...gallery.children].forEach((c) => c !== sentinel && c.remove())
+  generated = 0
+  growCrowd(BATCH)
+})
 
 // ── Go ──────────────────────────────────────────────────────────────────────
 rebuild()

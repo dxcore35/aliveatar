@@ -29,6 +29,9 @@ import { parseEmotionTags } from './speech.js'
 import { STATES, TOOL_STATES, TOOL_ACTS } from './states.js'
 import { EXPRESSION_NAMES } from './expressions.js'
 import { EYE_ACTS } from './motion/eyeacts.js'
+import { PARTS } from './humation.js'
+import { SKULL_NAMES } from './render/skull.js'
+import { randomVariation, applyVariation, AGENT_COLORS, SHOWCASE_STATES, SPACE } from './variation.js'
 
 /** Every eye act id, for validation and for the manifest. */
 const ACT_IDS = EYE_ACTS.map((a) => a.id)
@@ -120,6 +123,7 @@ export const MANIFEST = {
         color: { type: 'hex', optional: true },
         gender: { type: 'enum', values: ['male', 'female'], optional: true },
         age: { type: 'int', optional: true, note: 'drives greying, reading glasses, clothing and pace' },
+        skull: { type: 'enum', values: SKULL_NAMES, optional: true, note: 'generated head shape. Agents only; people keep the drawn head.' },
       } },
     {
       type: 'act.play',
@@ -143,6 +147,45 @@ export const MANIFEST = {
         'identity change to do it.',
       args: { kind: { type: 'enum', values: ['agent', 'customer'] } },
     },
+    {
+      type: 'parts',
+      doc:
+        'Choose the WARDROBE directly — every Humation slot plus the generated ' +
+        'head shape. Normally the seed picks all of this, which is what keeps an ' +
+        'avatar reproducible from its id; pin a slot here when you want a ' +
+        'specific look and let the seed keep deciding the rest.',
+      args: {
+        head: { type: 'enum', values: PARTS.head, optional: true },
+        body: { type: 'enum', values: PARTS.body, optional: true },
+        bottom: { type: 'enum', values: PARTS.bottom, optional: true },
+        item: { type: 'enum', values: PARTS.item, optional: true, note: 'hat, pet or held object' },
+        glasses: { type: 'enum', values: PARTS.glasses, optional: true },
+        skull: { type: 'enum', values: SKULL_NAMES, optional: true, note: 'agents only' },
+        emblem: { type: 'enum', values: ['icon', 'auto', 'item', 'off'], optional: true },
+      },
+    },
+    {
+      type: 'random',
+      doc:
+        'Generate a completely new avatar and return exactly what it chose. ' +
+        'Anything you pass is kept, so `{ kind: "customer", age: 70 }` gives a ' +
+        'random person of that age. This is the one to call when you want ' +
+        'variety and do not care about the specifics.',
+      args: {
+        kind: { type: 'enum', values: ['agent', 'customer'], optional: true },
+        state: { type: 'enum', values: SHOWCASE_STATES, optional: true },
+        color: { type: 'hex', optional: true },
+        gender: { type: 'enum', values: ['male', 'female'], optional: true },
+        age: { type: 'int', optional: true },
+        pinParts: { type: 'boolean', optional: true, note: 'also pick explicit parts instead of letting the seed choose' },
+      },
+      returns: { seed: 'string', kind: 'string', 'and every other chosen field': '…' },
+    },
+    {
+      type: 'options',
+      doc: 'Every value every variation argument accepts, and how large the space is. Call this to discover what you can ask for.',
+      returns: { parts: 'object', skulls: 'array', states: 'array', colors: 'array', space: 'object' },
+    },
     { type: 'theme', doc: 'Light or dark.', args: { theme: { type: 'enum', values: ['light', 'dark'] } } },
   ],
   notes: {
@@ -152,6 +195,12 @@ export const MANIFEST = {
     acts: ACT_IDS,
     /** Which act a tool call plays when none is named. */
     toolActs: TOOL_ACTS,
+    /** Every Humation part, per slot. */
+    parts: PARTS,
+    /** Every generated head shape. Agents only. */
+    skulls: SKULL_NAMES,
+    /** How big the variation space is, ignoring the seed (which is unbounded). */
+    space: { ...SPACE, partCombinations: SPACE.partCombinations },
   },
 }
 
@@ -267,6 +316,50 @@ export function handle(avatar, msg) {
       return { ok: true }
     }
 
+    case 'parts': {
+      // Every slot except `emblem` has a closed list. Checking against it here
+      // is what lets an agent recover on its own: a wrong name comes back with
+      // the legal ones attached, instead of silently drawing the seeded part.
+      const known = { ...PARTS, skull: SKULL_NAMES }
+      const slots = ['head', 'body', 'bottom', 'item', 'glasses', 'skull', 'emblem']
+      const set = {}
+      for (const slot of slots) {
+        if (msg[slot] === undefined) continue
+        // '' or null clears the pin and hands the slot back to the seed.
+        if (msg[slot] === '' || msg[slot] === null) {
+          avatar.removeAttribute(slot)
+          set[slot] = null
+          continue
+        }
+        const value = String(msg[slot])
+        if (known[slot] && !known[slot].includes(value)) {
+          return fail(avatar, `unknown ${slot} "${value}"`, { valid: known[slot] })
+        }
+        avatar.setAttribute(slot, value)
+        set[slot] = value
+      }
+      if (!Object.keys(set).length) return fail(avatar, 'parts needs at least one slot')
+      return { ok: true, set }
+    }
+
+    case 'random': {
+      const { type, pinParts, ...fixed } = msg
+      const v = randomVariation(fixed, { pinParts: !!pinParts })
+      applyVariation(avatar, v)
+      return v
+    }
+
+    case 'options':
+      return {
+        parts: PARTS,
+        skulls: SKULL_NAMES,
+        states: STATES,
+        showcaseStates: SHOWCASE_STATES,
+        agentColors: AGENT_COLORS,
+        acts: ACT_IDS,
+        space: { ...SPACE, partCombinations: SPACE.partCombinations },
+      }
+
     case 'theme':
       avatar.setAttribute('theme', msg.theme === 'dark' ? 'dark' : 'light')
       return { ok: true }
@@ -279,9 +372,9 @@ export function handle(avatar, msg) {
   }
 }
 
-function fail(avatar, message) {
+function fail(avatar, message, extra) {
   avatar.dispatchEvent(new CustomEvent('avatar-event', { detail: { name: 'error', message }, bubbles: true }))
-  return { error: message }
+  return { error: message, ...extra }
 }
 
 /** Cancel any emotion cues still pending from a `say`. */
