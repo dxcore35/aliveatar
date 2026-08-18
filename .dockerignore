@@ -1,0 +1,11 @@
+.git
+node_modules
+reference/
+.claude/
+docs/frames/
+docs/*.gif
+.DS_Store
+*.log
+Dockerfile
+docker-compose.yml
+DEPLOY.md

@@ -1,8 +1,10 @@
 # avatar-motion
 
-Deterministic, animated avatars for a voice-agent platform. One seed always
-gives the same person; the face is driven by the agent's real audio and its real
-tool calls.
+**Living avatars for AI agents and people.** One string in, one character out —
+the same one every time. It blinks, breathes, looks around, and shows what your
+agent is doing right now. No build step, no dependencies, MIT.
+
+🔗 **[avatar.dxcore.store](https://avatar.dxcore.store)** — try it · **[the lab](https://avatar.dxcore.store/lab.html)** — every knob
 
 ![Idle, listening, thinking, a tool call, a search, and pleased — dark and light, same seed, driven together](docs/avatar-motion.gif)
 
@@ -13,36 +15,27 @@ running side by side so a bug that only shows in one theme cannot hide.*
 |---|---|
 | ![glasses on, bubble out, outfit running hot](docs/tool-call.png) | ![laser eyes, no glasses](docs/laser-search.png) |
 
-It merges two things that already existed:
-
-- **Humation** — the modular person used by AgentDesk's `EntityIcon`. A seed picks
-  a head, body, bottom, item and glasses, and a palette recolours them. Same id,
-  same person, every time. It is a still drawing.
-- **The GrokBot face engine** — the animation system reverse-engineered in
-  [this gist](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5).
-  Spring morphs between eye shapes, a blink curve, a gaze clamp, eyes projected
-  onto a head sphere, and a state machine of expression pools and cadences.
-
-Humation says **who**. The engine says **alive**. This project is the seam.
-
-**Nothing in the Voice AI platform is touched.** The Humation packages are
-vendored read-only into `vendor/`; `AgentDesk-Unified/` is not modified.
-
-## Run it
+## Install
 
 ```bash
-cd avatar-motion && bun run dev
+bun add github:dxcore35/avatar-motion
 ```
 
-Then open <http://localhost:4330>. There is no build step and no install — the
-Humation packages are pre-bundled into `vendor/humation.bundle.js`.
+There is nothing to build and nothing to compile. The Humation artwork is
+pre-bundled into `vendor/humation.bundle.js`, and every source file is a plain
+ES module the browser loads directly.
 
 ## Use it
 
 ```html
+<script type="module" src="avatar-motion/src/avatar-motion.js"></script>
+
 <avatar-motion seed="agent:reception-01" kind="agent" color="#3B82F6"
                state="listening" emblem="icon" mouse-interactive></avatar-motion>
 ```
+
+Only `seed` is required. It is a web component — a custom HTML tag the browser
+knows how to draw — so the same tag works in plain HTML, React, Vue or Svelte.
 
 | Attribute | Meaning |
 |---|---|
@@ -50,7 +43,9 @@ Humation packages are pre-bundled into `vendor/humation.bundle.js`.
 | `kind` | `agent` (coloured AI mascot) or `customer` (person) |
 | `color` | the agent's signature colour, used as its skin |
 | `gender` | `male` / `female` — constrains hair and lower body |
+| `age` | a number; drives greying, reading glasses and pace |
 | `state` | any of the 39 states in `src/states.js` |
+| `skull` | agents only: `round` `squircle` `hexagon` `egg` `pear` `capsule` `diamond` `shield` `triangle` `blob` |
 | `head` `body` `bottom` `item` `glasses` | force a specific Humation part |
 | `emblem` | `icon` drawn set · `auto` emoji · `item` Humation hat/pet · `off` |
 | `mouse-interactive` | the eyes follow the pointer (real smooth pursuit) |
@@ -63,6 +58,27 @@ Humation packages are pre-bundled into `vendor/humation.bundle.js`.
 ```js
 el.runTool({ name: 'calendar.find_slot', args: '{ day: "tue" }', result: '3 slots' })
 el.blink(); el.spin(1); el.remount(); el.setState('thinking'); el.setExpression(17)
+```
+
+## Run the site locally
+
+```bash
+bun run dev
+```
+
+Then open <http://localhost:4330>. `/` is the landing page and `/lab.html` is
+the workbench — every state, all 41 eye types, the spring, the crowd.
+
+## Put it on the web
+
+Any static host works, because there is no server code:
+[`DEPLOY.md`](DEPLOY.md) walks through Docker plus a Cloudflare Tunnel (an
+outbound-only connection that publishes the site over HTTPS without opening a
+port on your machine), and lists the plain-static alternatives.
+
+```bash
+cp .env.example .env      # paste your tunnel token
+docker compose up -d --build
 ```
 
 ## Speech — the point of it, for a voice agent
@@ -344,7 +360,10 @@ drawing them here means the project carries no asset licence at all.
 
 | Path | What |
 |---|---|
-| `index.html` | the lab — stage, drive, states, faces, emblems, crowd, explanation |
+| `index.html` | the landing page |
+| `lab.html` | the lab — stage, drive, states, faces, emblems, crowd, explanation |
+| `src/site.js` | wiring for the landing page only |
+| `src/variation.js` | one definition of "a random avatar", shared by the site, the lab and the control API |
 | `src/humation.js` | compose, cut the eyes, measure the sphere, lenses, pets, the look pass |
 | `src/expressions.js` | parametric eye and mouth rings, 25 expressions |
 | `src/states.js` | pools, cadences, body motion, kind profiles, tool scripts |
@@ -363,7 +382,11 @@ drawing them here means the project carries no asset licence at all.
 | `tools/bake-humation.js` | rebuilds `vendor/humation.bundle.js` |
 | `tools/serve.js` | the static dev server |
 
-## Licences
+## Licence
+
+MIT — see [`LICENSE`](LICENSE).
+
+### Third-party
 
 Humation (`@humation/core`, `@humation/assets-humation-1`) is MIT, vendored
 under `vendor/@humation/` with its licence files intact. The engine behaviour is
