@@ -55,6 +55,7 @@ function currentConfig() {
     kind: $('kind').value,
     color: $('color').value,
     gender: $('gender').value || undefined,
+    age: $('age').value ? Number($('age').value) : undefined,
     skull: $('part-skull')?.value || '',
     selections: {},
   }
@@ -77,6 +78,8 @@ function rebuild() {
   live.setAttribute('color', cfg.color)
   if (cfg.gender) live.setAttribute('gender', cfg.gender)
   else live.removeAttribute('gender')
+  if (cfg.age) live.setAttribute('age', String(cfg.age))
+  else live.removeAttribute('age')
   if (cfg.skull) live.setAttribute('skull', cfg.skull)
   else live.removeAttribute('skull')
   for (const slot of SLOTS) {
@@ -91,6 +94,7 @@ function rebuild() {
   mirror('kind', cfg.kind)
   mirror('color', cfg.color)
   mirror('gender', cfg.gender ?? null)
+  mirror('age', cfg.age ? String(cfg.age) : null)
   mirror('skull', cfg.skull || null)
   for (const slot of SLOTS) mirror(slot, cfg.selections[slot] ?? null)
 
@@ -148,22 +152,11 @@ function applyControls() {
 for (const id of ['spring', 'gx', 'gy', 'turn', 'scale', 'emphasis', 'auto-blink', 'auto-expr', 'auto-motion', 'mouse']) {
   $(id).addEventListener('input', applyControls)
 }
-for (const id of ['seed', 'kind', 'color', 'gender', 'emblem', 'look', 'aura']) {
+for (const id of ['seed', 'kind', 'color', 'gender', 'age', 'emblem', 'look', 'aura']) {
   $(id).addEventListener('input', rebuild)
 }
 
-$('btn-blink').onclick = () => both((a) => a.blink())
-$('btn-spin').onclick = () => both((a) => a.spin(1))
-$('btn-mount').onclick = () => both((a) => a.remount())
 let toolIndex = 0
-$('btn-tool').onclick = () => {
-  if ($('kind').value === 'customer') {
-    $('demo-note').textContent = 'Tool calls are an agent thing — switch Kind to agent.'
-    return
-  }
-  const call = TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length]
-  both((a) => a.runTool(call, 4200))
-}
 
 // ── Live microphone ─────────────────────────────────────────────────────────
 // The real test of the speech path: speak, and both avatars mouth it. The
@@ -215,14 +208,71 @@ setInterval(() => {
 let eyeTour = null
 let actTour = null
 
+// The demo drives the CONTROLS, not the avatar behind their back. Every beat
+// writes into the same inputs a hand would and fires their events, so the
+// panels light up as it goes and the page teaches itself: you watch which
+// switch moved, then stop it and move that switch yourself.
+let demoTimer = 0
+
+const pickFrom = (a) => a[Math.floor(Math.random() * a.length)]
+const roll = (p) => Math.random() < p
+
+/** Set a control and let its own listener do the work. */
+function drive(id, value, kind = 'input') {
+  const el = $(id)
+  if (!el) return
+  if (el.type === 'checkbox') el.checked = value
+  else el.value = value
+  el.dispatchEvent(new Event(kind, { bubbles: true }))
+}
+
+function demoBeat() {
+  const agent = $('kind').value === 'agent'
+  // Always something visible in the expression row.
+  const expr = Math.floor(Math.random() * RINGS.length)
+  both((a) => a.engine?.setExpression(expr))
+  document.querySelectorAll('[data-expr]').forEach((b) =>
+    b.setAttribute('aria-pressed', String(Number(b.dataset.expr) === expr)))
+
+  // Then one or two knobs, so the eye has something to follow.
+  if (roll(0.55)) drive('spring', (4 + Math.random() * 8).toFixed(1))
+  if (roll(0.5)) { drive('gx', (Math.random() * 2 - 1).toFixed(2)); drive('gy', (Math.random() * 2 - 1).toFixed(2)) }
+  if (roll(0.35)) drive('scale', (0.6 + Math.random() * 1.1).toFixed(2))
+  if (roll(0.25)) drive('emphasis', roll(0.5))
+  if (roll(0.2)) drive('mouse', roll(0.5))
+  if (roll(0.18)) drive('look', roll(0.7))
+  if (roll(0.15) && agent) drive('aura', roll(0.7))
+  if (roll(0.15)) drive('emblem', pickFrom(['icon', 'item', 'off']))
+  if (roll(0.2)) drive('auto-blink', roll(0.85))
+  if (roll(0.2)) drive('auto-motion', roll(0.85))
+
+  // The buttons that used to sit under the stage are beats now.
+  if (roll(0.4)) {
+    const act = pickFrom(EYE_ACTS)
+    both((a) => a.playAct(act.id))
+    document.querySelectorAll('[data-act]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.act === act.id)))
+  }
+  if (roll(0.18)) both((a) => a.blink())
+  if (roll(0.1) && agent) both((a) => a.spin(1))
+  if (roll(0.08)) both((a) => a.remount())
+  if (roll(0.3) && agent) both((a) => a.runTool(TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length], 4200))
+  if (roll(0.12)) newPerson()
+
+  demoTimer = setTimeout(demoBeat, 1800 + Math.random() * 1800)
+}
+
 function setDemo(on) {
   if (on && eyeTour) stopEyeTour()
   if (on && actTour) stopActTour()
   $('btn-demo').setAttribute('aria-pressed', String(on))
-  $('btn-demo').textContent = on ? '■ Stop demo' : '▶ Auto demo'
+  $('btn-demo').textContent = on ? 'Stop demo' : 'Auto demo'
   $('turn').disabled = on
-  if (on) live.startDemo()
-  else {
+  clearTimeout(demoTimer)
+  if (on) {
+    live.startDemo()
+    demoTimer = setTimeout(demoBeat, 700)
+  } else {
     live.stopDemo()
     $('demo-note').textContent = ''
     applyControls()
@@ -246,8 +296,6 @@ live.addEventListener('demobeat', (ev) => {
 function stopEyeTour() {
   if (eyeTour) clearInterval(eyeTour)
   eyeTour = null
-  $('btn-eyes').setAttribute('aria-pressed', 'false')
-  $('btn-eyes').textContent = 'Test eyes'
   $('demo-note').textContent = ''
   applyControls()
 }
@@ -257,8 +305,6 @@ function startEyeTour() {
   // one on would have the two fighting over the same face.
   $('auto-expr').checked = false
   applyControls()
-  $('btn-eyes').setAttribute('aria-pressed', 'true')
-  $('btn-eyes').textContent = '■ Stop eye tour'
   let i = -1
   const show = () => {
     i++
@@ -276,7 +322,6 @@ function startEyeTour() {
   show()
   eyeTour = setInterval(show, 1150)
 }
-$('btn-eyes').onclick = () => (eyeTour ? stopEyeTour() : startEyeTour())
 
 // ── Eye animations ──────────────────────────────────────────────────────────
 // One button per act, plus a runner that plays the lot back to back. The note
@@ -306,8 +351,6 @@ function stopActTour() {
   actTour = null
   $('btn-acts').setAttribute('aria-pressed', 'false')
   $('btn-acts').textContent = '▶ Play all animations'
-  $('btn-eyeanim').setAttribute('aria-pressed', 'false')
-  $('btn-eyeanim').textContent = 'Eye animations'
   $('demo-note').textContent = ''
   document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', 'false'))
 }
@@ -316,8 +359,6 @@ function startActTour() {
   stopEyeTour()
   $('btn-acts').setAttribute('aria-pressed', 'true')
   $('btn-acts').textContent = '■ Stop'
-  $('btn-eyeanim').setAttribute('aria-pressed', 'true')
-  $('btn-eyeanim').textContent = '■ Stop animations'
   let i = 0
   const step = () => {
     if (i >= EYE_ACTS.length) return stopActTour()
@@ -332,11 +373,6 @@ $('btn-acts').onclick = () => (actTour ? stopActTour() : startActTour())
 // The same runner, on a button that sits with the stage rather than 2,000 px
 // down the page. The animations are the part people come to see; burying them
 // under the expression grid meant nobody found them.
-$('btn-eyeanim').onclick = () => {
-  if (actTour) return stopActTour()
-  startActTour()
-  document.getElementById('act-grid').scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
 
 $('btn-reset').onclick = () => {
   stopEyeTour()
@@ -348,12 +384,32 @@ $('btn-reset').onclick = () => {
   for (const id of ['auto-blink', 'auto-expr', 'auto-motion']) $(id).checked = true
   applyControls()
 }
-$('btn-random').onclick = () => {
-  $('seed').value = `${$('kind').value}:${Math.random().toString(36).slice(2, 9)}`
-  for (const slot of SLOTS) $(`part-${slot}`).value = ''
-  $('part-skull').value = ''
+// ── Adopt ───────────────────────────────────────────────────────────────────
+// Click a face anywhere on the page and it becomes the person on the stage,
+// with every control set to the values that built them. The panel is then a
+// readout of that character, which is the only way to answer "how was this one
+// made" without guessing.
+function adopt(v) {
+  setDemo(false)
+  $('seed').value = v.seed || ''
+  $('kind').value = v.kind || 'agent'
+  if (v.color) $('color').value = v.color
+  $('gender').value = v.gender || ''
+  $('age').value = v.age ? String(v.age) : ''
+  if ($('part-skull')) $('part-skull').value = v.skull || ''
+  for (const slot of SLOTS) {
+    const el = $(`part-${slot}`)
+    if (el) el.value = v[slot] || ''
+  }
   rebuild()
 }
+
+/** A fresh stranger on the stage, controls and all. */
+function newPerson() {
+  adopt(randomVariation({}, { pinParts: true }))
+}
+
+$('btn-random').onclick = () => newPerson()
 
 // ── New head + colours ──────────────────────────────────────────────────────
 // One button that walks the whole agent LOOK: a different generated skull, a
@@ -509,22 +565,21 @@ document.querySelector('.tabs').addEventListener('click', (ev) => {
   })
 })
 
-// ── Crowd — infinite ────────────────────────────────────────────────────────
+// ── Crowd — fifty at a time, forever ────────────────────────────────────────
 //
 // A fixed set of twelve showed that the engine runs. It could not show the one
 // thing a variation system has to prove: that it does not repeat. So this
-// generates people as you scroll, forever, and RECYCLES — tiles far above the
-// viewport are removed as new ones arrive, which is what keeps an endless list
-// from turning into an endless DOM.
+// generates fifty new people per page and the pager never ends.
 //
-// The shared ticker already stops anything off screen, so the cost of scrolling
-// is the tiles you can actually see, not the ones you have scrolled past.
+// Pages are remembered once made, so going back to page 2 shows the same fifty
+// rather than a fresh fifty — a crowd that reshuffles when you glance away is
+// not a crowd, it is a screensaver.
 
 const gallery = $('gallery')
-const BATCH = 24
-/** Keep at most this many tiles alive; older ones are dropped from the top. */
-const WINDOW = 240
-let generated = 0
+const PER_PAGE = 50
+/** page number → the fifty variations that page holds */
+const pages = new Map()
+let page = 1
 
 function crowdTile(v) {
   const fig = document.createElement('figure')
@@ -535,68 +590,71 @@ function crowdTile(v) {
   el.style.cssText = 'width:100%;height:100%'
   applyVariation(el, v)
   el.setAttribute('emblem', 'icon')
-  // The WebGL pool is three deep for the whole page; a scrolling crowd must
-  // never try to claim one.
+  // The WebGL pool is three deep for the whole page; a crowd must never try to
+  // claim one.
   el.setAttribute('no-aura', '')
   box.appendChild(el)
   box.addEventListener('pointerenter', () => el.setAttribute('mouse-interactive', ''))
   box.addEventListener('pointerleave', () => el.removeAttribute('mouse-interactive'))
-  const cap = document.createElement('figcaption')
-  cap.textContent = v.kind === 'agent' ? `${v.state} · ${v.skull}` : `${v.state}${v.age ? ` · ${v.age}` : ''}`
-  fig.append(box, cap)
+  box.style.cursor = 'pointer'
+  box.addEventListener('click', () => {
+    adopt(v)
+    document.querySelector('.tab[data-tab="drive"]')?.click()
+    document.querySelector('.stage')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  })
+  // Fifty at once means the tile is small, and a caption under a small tile is
+  // two lines of wrapped type per face. The detail moves to the tooltip so the
+  // grid is faces and nothing else.
+  fig.title = v.kind === 'agent' ? `${v.state} · ${v.skull} · ${v.seed}` : `${v.state}${v.age ? ` · ${v.age}` : ''} · ${v.seed}`
+  fig.append(box)
   return fig
 }
 
-function growCrowd(n = BATCH) {
-  const frag = document.createDocumentFragment()
-  for (let i = 0; i < n; i++) {
-    frag.appendChild(crowdTile(randomVariation({}, { pinParts: true })))
-    generated++
+function peopleFor(n) {
+  if (!pages.has(n)) {
+    pages.set(n, Array.from({ length: PER_PAGE }, () => randomVariation({}, { pinParts: true })))
   }
-  gallery.insertBefore(frag, sentinel)
-  // Recycle from the top. Removing the element disconnects it, which unhooks it
-  // from the ticker and the observer — no bookkeeping needed here.
-  while (gallery.children.length - 1 > WINDOW) gallery.removeChild(gallery.firstElementChild)
+  return pages.get(n)
+}
+
+/**
+ * The pager.
+ *
+ * There is no last page, so there is no "of 12" to print. It shows where you
+ * are, a few either side, and a next — which is all a reader can act on.
+ */
+function drawPager() {
+  const nav = $('crowd-pager')
+  if (!nav) return
+  const near = []
+  for (let n = Math.max(1, page - 2); n <= page + 2; n++) near.push(n)
+  nav.innerHTML = [
+    `<button data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&larr;</button>`,
+    page > 3 ? `<button data-page="1">1</button><span class="gap">…</span>` : '',
+    ...near.map((n) => `<button data-page="${n}" aria-pressed="${n === page}">${n}</button>`),
+    `<span class="gap">…</span>`,
+    `<button data-page="${page + 1}">&rarr;</button>`,
+  ].join('')
   const count = $('crowd-count')
-  if (count) count.textContent = `${generated} generated · ${gallery.children.length - 1} on screen`
+  if (count) count.textContent = `page ${page} · ${pages.size * PER_PAGE} people made so far`
 }
 
-// A sentinel at the end of the list: when it scrolls into view, make more.
-const sentinel = document.createElement('div')
-sentinel.style.cssText = 'grid-column:1/-1;height:1px'
-gallery.appendChild(sentinel)
-
-new IntersectionObserver(
-  (entries) => {
-    if (entries.some((e) => e.isIntersecting)) growCrowd()
-  },
-  { rootMargin: '600px' },
-).observe(sentinel)
-
-// Belt and braces. An observer needs a laid-out viewport to fire against, and
-// there are real cases where it never does — an embedded frame with no height,
-// a headless pane, a tab that was hidden the whole time the list grew. The
-// geometry check costs a rect read per scroll and covers all of them.
-let growing = false
-function maybeGrow() {
-  if (growing || gallery.closest('.tab-panel')?.hidden) return
-  const r = sentinel.getBoundingClientRect()
-  if (r.top - (window.innerHeight || 0) > 600) return
-  growing = true
-  growCrowd()
-  growing = false
+function showPage(n) {
+  page = Math.max(1, n)
+  const frag = document.createDocumentFragment()
+  for (const v of peopleFor(page)) frag.appendChild(crowdTile(v))
+  gallery.replaceChildren(frag)
+  drawPager()
 }
-addEventListener('scroll', maybeGrow, { passive: true })
-addEventListener('resize', maybeGrow)
 
-growCrowd(BATCH)
-
-$('crowd-more')?.addEventListener('click', () => growCrowd(BATCH))
-$('crowd-reset')?.addEventListener('click', () => {
-  ;[...gallery.children].forEach((c) => c !== sentinel && c.remove())
-  generated = 0
-  growCrowd(BATCH)
+$('crowd-pager')?.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-page]')
+  if (!btn || btn.disabled) return
+  showPage(Number(btn.dataset.page))
+  gallery.scrollIntoView({ block: 'start', behavior: 'smooth' })
 })
+
+showPage(1)
 
 // ── Go ──────────────────────────────────────────────────────────────────────
 rebuild()

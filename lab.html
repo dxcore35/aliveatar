@@ -6,17 +6,18 @@
     <meta name="color-scheme" content="light dark" />
     <title>Lab — avatar-motion</title>
     <style>
-      /* The lab wears the same clothes as the landing page: one palette, one
-         radius, one mono face. It is denser because it is a workbench, not a
-         window — but nothing here is styled a second way. */
+      /* The lab shares the landing page's palette and type, but it is a
+         workbench: the subject is big and first, the controls are quiet and
+         below it. Panels are not cards — a card inside a card inside a tab is
+         three borders saying nothing. A hairline and a label do the same job. */
       :root {
         --page: #f4f2ec;
         --raised: #fffdf7;
         --line: #dbd7cb;
         --ink: #16170f;
         --muted: #74766b;
-        --primary: #2f66e8;
-        --on-primary: #ffffff;
+        --accent: #2f66e8;
+        --on-accent: #ffffff;
         --mono: ui-monospace, 'SF Mono', Menlo, monospace;
       }
       @media (prefers-color-scheme: dark) {
@@ -26,132 +27,148 @@
           --line: #232327;
           --ink: #fafaf8;
           --muted: #8a8a93;
-          --primary: #6f96ff;
-          --on-primary: #0c1630;
+          --accent: #6f96ff;
+          --on-accent: #0c1630;
         }
       }
       * { box-sizing: border-box; }
+      /* A <figure> carries 40px of UA margin on each side. In a 74px grid cell
+         that leaves nothing, and the crowd renders as fifty invisible boxes. */
+      figure { margin: 0; }
       body {
-        margin: 0; padding: 0 22px 72px;
+        margin: 0; padding: 0 24px 96px;
         background: var(--page); color: var(--ink);
         font: 15px/1.6 ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      .frame { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
+      .frame { max-width: 1200px; margin: 0 auto; }
 
-      /* ── header, same shape as the landing nav ─────────────────────── */
+      /* ── header ────────────────────────────────────────────────────── */
       header {
         display: flex; align-items: baseline; justify-content: space-between;
-        gap: 24px; flex-wrap: wrap; padding: 20px 0 18px;
+        gap: 28px; flex-wrap: wrap; padding: 22px 0 26px;
       }
-      h1 { margin: 4px 0 0; font-size: 1.9rem; font-weight: 600; letter-spacing: -0.04em; }
-      .kicker {
-        font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
-        letter-spacing: 0.06em;
-      }
+      h1 { margin: 5px 0 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.04em; }
+      .kicker { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
       .kicker a { color: inherit; text-decoration: none; }
       .kicker a:hover { color: var(--ink); }
-      header p { margin: 0; color: var(--muted); max-width: 44ch; font-size: 0.92rem; }
-      h2, h3 { margin: 0; font-weight: 600; }
-      h3 { font-size: 0.82rem; letter-spacing: 0.02em; color: var(--muted); text-transform: uppercase; }
+      header p { margin: 0; color: var(--muted); max-width: 46ch; font-size: 0.9rem; }
+      header a { color: var(--accent); }
       p { margin: 0; }
       .note { color: var(--muted); font-size: 0.84rem; }
       code, .mono { font-family: var(--mono); font-size: 0.82em; }
 
-      .shell { display: grid; grid-template-columns: minmax(290px, 0.78fr) minmax(440px, 1.5fr); gap: 16px; align-items: start; }
-      .panel {
-        background: var(--raised); border: 1px solid var(--line); border-radius: 16px;
-        padding: 15px; display: grid; gap: 12px;
+      /* ── stage: the subject, full width, before any control ────────── */
+      .stage {
+        display: grid; gap: 18px; justify-items: center;
+        padding: 30px 24px 32px; margin-bottom: 34px;
+        border: 1px solid var(--line); border-radius: 22px; background: var(--raised);
       }
-      .rail { position: sticky; top: 16px; display: grid; gap: 14px; }
-
-      /* ── stage ─────────────────────────────────────────────────────── */
-      .stage { display: grid; gap: 12px; justify-items: center; }
-      .stage-avatars { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
-      .figure { display: grid; gap: 6px; justify-items: center; }
-      .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+      .stage-avatars {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 300px));
+        gap: 22px; width: 100%; justify-content: center;
+      }
+      .figure { display: grid; gap: 9px; justify-items: center; }
+      .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
       /* Agents carry no background of their own, so the stage supplies the page
          each theme would put behind them. */
       .box.theme-dark { background: #14161b; }
       .box.theme-light { background: #f4f2ec; }
-      .figure figcaption { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
-      .readout { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 0.76rem; font-family: var(--mono); }
-      .readout b { color: var(--ink); font-weight: 500; }
-      .meter { width: 130px; height: 8px; border-radius: 99px; background: color-mix(in oklab, var(--line) 70%, transparent); overflow: hidden; }
-      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--primary); transition: width 60ms linear; }
+      .figure figcaption {
+        font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+        letter-spacing: 0.08em; text-transform: uppercase;
+      }
+      .status {
+        display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
+        font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
+      }
+      .status b { color: var(--ink); font-weight: 500; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+      .stage-note { text-align: center; max-width: 54ch; min-height: 1.3em; }
+      .meter { width: 120px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 60ms linear; }
+
+      /* ── two columns below: identity on the left, the work on the right */
+      .shell { display: grid; grid-template-columns: minmax(270px, 0.72fr) minmax(460px, 1.6fr); gap: 34px; align-items: start; }
+      .rail { position: sticky; top: 20px; display: grid; gap: 26px; }
+
+      /* A panel is a label and a hairline, not a box. */
+      .panel { display: grid; gap: 13px; }
+      .panel + .panel { border-top: 1px solid var(--line); padding-top: 22px; }
+      h3 {
+        margin: 0; font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+      }
 
       /* ── controls ──────────────────────────────────────────────────── */
       .row { display: flex; gap: 8px; flex-wrap: wrap; }
       button, select, input[type='text'] {
-        font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--page);
-        border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px;
-        transition: border-color 0.15s, color 0.15s, background 0.15s;
+        font: inherit; font-size: 0.86rem; color: var(--ink); background: transparent;
+        border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+        transition: border-color 0.14s, color 0.14s, background 0.14s;
       }
       button { cursor: pointer; }
-      button:hover { border-color: color-mix(in oklab, var(--muted) 55%, transparent); }
-      button.primary, button[aria-pressed='true'] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
-      input[type='range'] { width: 100%; accent-color: var(--primary); }
-      label.control { display: grid; gap: 5px; }
-      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.84rem; }
-      .control-head output { color: var(--primary); font-family: var(--mono); font-size: 0.78rem; }
+      button:hover { border-color: var(--muted); }
+      /* One accent, one meaning: this is the thing that is on. */
+      button.primary[aria-pressed='true'], button[aria-pressed='true'] {
+        background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+      }
+      input[type='text'], select { background: var(--raised); }
+      input[type='range'] { width: 100%; accent-color: var(--accent); }
+      label.control { display: grid; gap: 6px; }
+      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.82rem; color: var(--muted); }
+      .control-head output { color: var(--accent); font-family: var(--mono); font-size: 0.76rem; }
       .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.86rem; }
-      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      .grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-      .grid5 button { padding: 6px 2px; font-size: 0.68rem; border-radius: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-      .grid3 button { padding: 9px 6px; font-size: 0.74rem; border-radius: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      /* Same pill as the words in the landing footer. */
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      /* Four columns, not five: the label is what you read, so give it room. */
+      .grid5 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+      .grid5 button { padding: 9px 8px; font-size: 0.74rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .grid3 button { padding: 10px 8px; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chips button {
-        display: inline-flex; align-items: center; gap: 6px;
-        border-radius: 999px; padding: 5px 11px; font-size: 0.74rem;
-        font-family: var(--mono); background: transparent; color: var(--muted);
+        display: inline-flex; align-items: center; gap: 7px;
+        border-radius: 999px; padding: 6px 12px; font-size: 0.75rem;
+        font-family: var(--mono); color: var(--muted);
       }
-      .chips button svg { flex: none; opacity: 0.75 }
-      .chips button[aria-pressed='true'] { border-color: var(--primary); color: var(--primary); background: transparent; }
-      .group-label { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+      .chips button svg { flex: none; opacity: 0.7 }
+      .chips button[aria-pressed='true'] svg { opacity: 1 }
+      .group-label { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
       /* ── tabs ──────────────────────────────────────────────────────── */
-      .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+      .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
       .tab {
         background: transparent; border: 0; border-bottom: 2px solid transparent;
-        border-radius: 0; color: var(--muted); padding: 10px 13px; font-size: 0.88rem;
+        border-radius: 0; color: var(--muted); padding: 11px 2px; margin-right: 20px;
+        font-size: 0.92rem;
       }
       .tab:hover { color: var(--ink); border-color: transparent; }
-      .tab[aria-selected='true'] { border-bottom-color: var(--primary); color: var(--ink); }
+      .tab[aria-selected='true'] { border-bottom-color: var(--accent); color: var(--ink); background: transparent; }
       .tab-panel[hidden] { display: none; }
-      .tab-panel { display: grid; gap: 14px; padding-top: 14px; }
+      .tab-panel { display: grid; gap: 26px; padding-top: 24px; }
+      .tab-panel > .panel + .panel { border-top: 1px solid var(--line); padding-top: 24px; }
 
-      /* ── explanation blocks ────────────────────────────────────────── */
-      .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-      .pipe { background: var(--page); border: 1px solid var(--line); border-radius: 12px; padding: 10px; position: relative; }
-      .pipe span { display: block; color: var(--primary); font-family: var(--mono); font-size: 0.66rem; margin-bottom: 3px; }
-      .pipe strong { font-weight: 600; font-size: 0.82rem; }
-      .pipe:not(:last-child)::after { content: '→'; position: absolute; right: -8px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-
-      .facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
-      .fact { background: var(--page); border: 1px solid var(--line); border-radius: 12px; padding: 10px; color: var(--muted); font-size: 0.82rem; }
+      .facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+      .fact { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 11px; color: var(--muted); font-size: 0.8rem; }
       .fact code { display: block; color: var(--ink); margin-bottom: 4px; overflow-wrap: anywhere; }
 
-      /* ── galleries ─────────────────────────────────────────────────── */
-      .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; align-items: start; }
-      .gallery .figure { justify-items: stretch; }
-      .gallery .figure > .box { border-radius: 12px; width: 100%; height: auto; }
-      .gallery figcaption { text-align: center; }
-      .gallery .figure > .box.clickable { cursor: pointer; }
+      /* Tight on purpose: fifty faces at once is the point, so the gap is the
+         smallest that still reads as separate tiles. */
+      .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 4px; align-items: start; }
+      .gallery .figure { justify-items: stretch; gap: 3px; }
+      .gallery .figure > .box { border-radius: 10px; width: 100%; height: auto; border: 1px solid var(--line); }
+      .gallery figcaption { text-align: center; text-transform: none; letter-spacing: 0; font-size: 0.6rem; }
 
-      .iconsheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px; }
-      .iconcell { display: grid; gap: 5px; justify-items: center; background: var(--page); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; }
-      .iconcell svg { color: var(--ink); }
-      .iconcell span { font-family: var(--mono); font-size: 0.64rem; color: var(--muted); text-align: center; }
-      .iconcell .glyph { font-size: 24px; line-height: 28px; }
-      /* Head crop: blow the 88-unit avatar up and slide the head into frame. */
-      .headcrop { width: 260%; height: 260%; margin: -53.5% 0 0 -60.8%; }
+      .pager { display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: wrap; }
+      .pager button { min-width: 34px; padding: 6px 9px; font-family: var(--mono); font-size: 0.76rem; }
+      .pager button[disabled] { opacity: 0.35; cursor: default; }
+      .pager .gap { color: var(--muted); font-family: var(--mono); font-size: 0.76rem; padding: 0 2px; }
 
       @media (max-width: 900px) {
-        .shell { grid-template-columns: 1fr; }
+        .shell { grid-template-columns: 1fr; gap: 26px; }
         .rail { position: static; }
-        .pipeline, .facts, .grid2 { grid-template-columns: 1fr; }
+        .grid2, .grid5 { grid-template-columns: 1fr 1fr; }
+        .stage-avatars { grid-template-columns: 1fr 1fr; }
       }
     </style>
   </head>
@@ -162,65 +179,44 @@
           <span class="kicker"><a href="./">&#8592; avatar-motion</a> &nbsp;/&nbsp; lab</span>
           <h1>The lab</h1>
         </div>
-        <p>
-          Every knob the engine has: drive a state, retune the spring, watch a
-          crowd. None of it is needed to use the avatar &mdash; this is the
-          workbench it was built on. How it works is written up in
-          <a href="./docs/ENGINE.md">ENGINE.md</a>.
-        </p>
       </header>
 
-      <div class="shell">
-        <!-- ── Preview rail ────────────────────────────────────────────── -->
-        <div class="rail">
-          <section class="panel stage">
-            <div class="stage-avatars">
-              <figure class="figure">
-                <div class="box theme-dark" id="box-live"></div>
-                <figcaption>dark mode · live</figcaption>
-              </figure>
-              <figure class="figure">
-                <div class="box theme-light" id="box-light"></div>
-                <figcaption>light mode · live</figcaption>
-              </figure>
-            </div>
-            <p class="note" style="text-align:center">
-              Both are the same person, the same seed and the same animation,
-              driven together — so anything that only works in one theme shows up
-              here immediately.
-            </p>
-            <div class="readout">
-              <span>state <b id="r-state">idle</b></span>
-              <span>expr <b id="r-expr">00</b></span>
-              <span>turn <b id="r-turn">0°</b></span>
-              <span>eyes cut <b id="r-cut">2</b></span>
-            </div>
-            <div class="readout">
-              <span><b id="r-fps">–</b> fps</span>
-              <span>animating <b id="r-active">0</b>/<b id="r-total">0</b></span>
-              <span>shaders <b id="r-aura">0</b>/3</span>
-            </div>
-            <p class="note" id="demo-note" style="min-height:1.4em;text-align:center"></p>
-            <div class="row" style="justify-content:center">
-              <button class="primary" id="btn-demo" aria-pressed="false">▶ Auto demo</button>
-              <button class="primary" id="btn-eyes" aria-pressed="false">Test eyes</button>
-              <button class="primary" id="btn-eyeanim" aria-pressed="false">Eye animations</button>
-              <button id="btn-blink">Blink</button>
-              <button id="btn-spin">Spin</button>
-              <button id="btn-mount">Replay mount</button>
-              <button id="btn-tool">Run a tool call</button>
-              <button id="btn-reset">Reset</button>
-            </div>
-            <div class="row" style="justify-content:center;align-items:center;gap:10px">
-              <button id="btn-mic" aria-pressed="false">Speak into it</button>
-              <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
-            </div>
-            <p class="note" id="mic-note" style="text-align:center">
-              Turn the microphone on and talk — both avatars will mouth what you
-              say, from the waveform. This is the same path a LiveKit track takes.
-            </p>
-          </section>
+      <!-- ── Stage: the subject, full width, before any control ──────── -->
+      <section class="stage">
+        <div class="stage-avatars">
+          <figure class="figure">
+            <div class="box theme-dark" id="box-live"></div>
+            <figcaption>dark</figcaption>
+          </figure>
+          <figure class="figure">
+            <div class="box theme-light" id="box-light"></div>
+            <figcaption>light</figcaption>
+          </figure>
+        </div>
 
+        <p class="status">
+          <span>state <b id="r-state">idle</b></span>
+          <span>expr <b id="r-expr">00</b></span>
+          <span>turn <b id="r-turn">0&deg;</b></span>
+          <span>eyes cut <b id="r-cut">2</b></span>
+          <span><b id="r-fps">&ndash;</b> fps</span>
+          <span>animating <b id="r-active">0</b>/<b id="r-total">0</b></span>
+          <span>shaders <b id="r-aura">0</b>/3</span>
+        </p>
+
+        <div class="actions">
+          <button class="primary" id="btn-demo" aria-pressed="false">Auto demo</button>
+          <button id="btn-reset">Reset</button>
+          <button id="btn-mic" aria-pressed="false">Speak into it</button>
+          <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
+        </div>
+
+        <p class="note stage-note" id="demo-note"></p>
+        <p class="note stage-note" id="mic-note"></p>
+      </section>
+
+      <div class="shell">
+        <div class="rail">
           <section class="panel">
             <h3>Who</h3>
             <div class="grid2">
@@ -247,6 +243,10 @@
                   <option value="male">male</option>
                 </select>
               </label>
+              <label class="control">
+                <span class="control-head"><span>Age</span></span>
+                <input type="text" id="age" placeholder="from seed" inputmode="numeric" />
+              </label>
             </div>
             <p class="note" id="kind-note"></p>
             <div class="grid2" id="part-pickers"></div>
@@ -268,12 +268,6 @@
           <section class="tab-panel" id="tab-drive" role="tabpanel">
             <section class="panel">
               <h3>Expression</h3>
-              <p class="note">
-                Each button loads two 48-point eye rings. The face springs from
-                where it is to the new shape — it never cuts. The ✦ entries also
-                move the head, so the spring carries that too. Press
-                <b>Test eyes</b> above to watch all forty-one go past in order.
-              </p>
               <div class="grid5" id="expr-grid"></div>
               <label class="control">
                 <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
@@ -384,17 +378,13 @@
             <section class="panel">
               <h3>Different people, different states, one engine</h3>
               <p class="note">
-                Infinite. Keep scrolling and new people are generated as you go —
-                a fresh seed, kind, colour, head shape, age and state each time.
-                Tiles far above are recycled, so the list stays endless without
-                the page growing. Hover one to make those eyes follow you.
+                Fifty a page, and the pages never run out. Every face is a fresh
+                seed, kind, colour, head shape, age and state. Hover one to make
+                those eyes follow you; the tooltip says who it is.
               </p>
-              <div class="row" style="margin-bottom:10px;align-items:center">
-                <button id="crowd-more">Generate more</button>
-                <button id="crowd-reset">Start over</button>
-                <span class="note" id="crowd-count"></span>
-              </div>
               <div class="gallery" id="gallery"></div>
+              <nav class="pager" id="crowd-pager" aria-label="Crowd pages"></nav>
+              <p class="note" id="crowd-count" style="text-align:center"></p>
             </section>
           </section>
 
