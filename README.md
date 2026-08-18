@@ -1,4 +1,4 @@
-# avatar-motion
+# aliveatar
 
 **Living avatars for AI agents and people.** One string in, one character out —
 the same one every time. It blinks, breathes, looks around, and shows what your
@@ -21,13 +21,13 @@ the art. Both licences are in [`LICENSE`](LICENSE).
 ## Install
 
 ```bash
-bun add github:dxcore35/avatar-motion
+bun add github:dxcore35/aliveatar
 ```
 
 ## Use
 
 ```html
-<script type="module" src="avatar-motion/src/avatar-motion.js"></script>
+<script type="module" src="aliveatar/src/avatar-motion.js"></script>
 
 <avatar-motion seed="reception-01" state="listening"></avatar-motion>
 ```
@@ -108,7 +108,7 @@ same way. A wrong value comes back with the legal ones attached.
 ## MCP — let Claude drive the face
 
 ```bash
-claude mcp add avatar -- bun /path/to/avatar-motion/mcp/server.js
+claude mcp add avatar -- bun /path/to/aliveatar/mcp/server.js
 ```
 
 That is the whole setup. Twenty-one tools appear, generated from the same command

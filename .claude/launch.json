@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "avatar-motion",
+      "name": "aliveatar",
       "runtimeExecutable": "bun",
       "runtimeArgs": [
         "tools/serve.js"

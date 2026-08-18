@@ -127,7 +127,7 @@ async function handle(req) {
       result: {
         protocolVersion: PROTOCOL,
         capabilities: { tools: {} },
-        serverInfo: { name: 'avatar-motion', version: '1.0.0' },
+        serverInfo: { name: 'aliveatar', version: '1.0.0' },
       },
     })
   }

@@ -1,4 +1,4 @@
-# How avatar-motion works
+# How aliveatar works
 
 Moved out of the lab page so the workbench stays a workbench. This is the
 reference explanation of the engine.

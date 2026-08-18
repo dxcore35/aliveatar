@@ -43,7 +43,7 @@ server or the home router.
 2. Go to **Zero Trust** → **Networks** → **Tunnels**.
 3. If a tunnel already exists that you want to reuse, open it. Otherwise
    click **Create a tunnel** → type **Cloudflared** → give it a name,
-   e.g. `avatar-motion`.
+   e.g. `aliveatar`.
 4. On the tunnel's setup screen, find the **connector command** — it
    contains a long string starting with `eyJ…` after the word `--token`.
    Copy that whole string. This is the **tunnel token**: a secret that
@@ -82,7 +82,7 @@ allowed to run Docker without `sudo` every time.)
 Get the code onto the server:
 
 ```bash
-git clone <this-repo-url> avatar-motion && cd avatar-motion
+git clone <this-repo-url> aliveatar && cd aliveatar
 ```
 
 Create the local settings file from the template and paste in the tunnel
@@ -117,10 +117,10 @@ Ask the public address for its headers — a working site returns
 `HTTP/2 200`:
 
 ```bash
-curl -I https://avatar.dxcore35.eu
+curl -I https://aliveatar.dxcore35.eu
 ```
 
-Open `https://avatar.dxcore35.eu` in a browser and confirm the page
+Open `https://aliveatar.dxcore35.eu` in a browser and confirm the page
 loads with a valid padlock.
 
 ### 4. How to update after a code change

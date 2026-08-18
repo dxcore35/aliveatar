@@ -37,7 +37,7 @@ export function connectBridge(avatar, opts = {}) {
     ws.onopen = () => {
       retry = 500
       ws.send(JSON.stringify({ hello: 'avatar', name }))
-      console.info(`[avatar-motion] bridged as "${name}" → ${url}`)
+      console.info(`[aliveatar] bridged as "${name}" → ${url}`)
     }
 
     ws.onmessage = (ev) => {

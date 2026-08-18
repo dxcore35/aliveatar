@@ -30,4 +30,4 @@ Bun.serve({
   },
 })
 
-console.log(`avatar-motion → http://localhost:${PORT}`)
+console.log(`aliveatar → http://localhost:${PORT}`)
