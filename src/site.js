@@ -149,85 +149,84 @@ function busy() {
 hero.addEventListener('pointermove', busy)
 setTimeout(idle, 900)
 
-// ── what the face reports ───────────────────────────────────────────────────
-const BEHAVIOURS = [
-  ['listening', 'on a call'],
-  ['thinking', 'working it out'],
-  ['searching', 'running a tool'],
-  ['writing', 'taking a note'],
-  ['sleeping', 'idle'],
-  ['celebrate', 'booking made'],
+// ── the radial stream ──────────────────────────────────────────────────────
+// Faces spawn on a ring around the middle and fly straight out past the edge,
+// fading in as they leave the ring and out as they leave the frame. The ring
+// has a hole in it, and the hole is where the words sit — so the copy is never
+// covered and the motion never has to dodge it.
+const stage = $('stage')
+const stream = $('stream')
+const TILE = 112
+const DENSITY = 24
+const BLANK = 0.45 // share of the short side kept empty in the middle
+
+// The tile behind each face. Saturated on purpose: the drawing has a dark
+// outline, so it holds up on any of these, and colour is what makes a wall of
+// strangers read as a crowd rather than a spreadsheet.
+const PAPER = [
+  '#FDE68A', '#FBCFE8', '#BFDBFE', '#BBF7D0', '#DDD6FE', '#FED7AA',
+  '#A7F3D0', '#FECACA', '#C7D2FE', '#F5D0FE', '#D9F99D', '#99F6E4',
 ]
-BEHAVIOURS.forEach(([state, caption], i) => {
-  const cell = document.createElement('div')
-  cell.className = 'cell'
-  const box = document.createElement('div')
-  box.className = 'box'
-  const el = document.createElement('avatar-motion')
-  el.setAttribute('seed', `agent:duty-${i}`)
-  el.setAttribute('kind', 'agent')
-  el.setAttribute('state', state)
-  el.setAttribute('emblem', 'icon')
-  el.setAttribute('no-aura', '')
-  box.appendChild(el)
-  box.addEventListener('pointerenter', () => el.setAttribute('mouse-interactive', ''))
-  box.addEventListener('pointerleave', () => el.removeAttribute('mouse-interactive'))
-  const label = document.createElement('span')
-  label.textContent = caption
-  cell.append(box, label)
-  $('behaviours').appendChild(cell)
-})
 
-// ── the endless wall ────────────────────────────────────────────────────────
-// Grow at the bottom, drop from the top: an endless scroll must never become an
-// endless DOM.
-const wall = $('wall')
-const BATCH = 18
-const WINDOW = 180
-let made = 0
+let born = 0
+const pick = (a) => a[Math.floor(Math.random() * a.length)]
 
-const sentinel = document.createElement('div')
-sentinel.style.cssText = 'grid-column:1/-1;height:1px'
-wall.appendChild(sentinel)
+function launch(tile) {
+  const box = stream.getBoundingClientRect()
+  if (!box.width || !box.height) return
+  const angle = Math.random() * Math.PI * 2
+  const hole = (Math.min(box.width, box.height) / 2) * BLANK
+  // Far enough that the tile is fully past the corner before it is recycled.
+  const far = Math.hypot(box.width, box.height) / 2 + TILE
 
-function grow(n = BATCH) {
-  const frag = document.createDocumentFragment()
-  for (let i = 0; i < n; i++) {
-    const box = document.createElement('div')
-    box.className = 'box'
-    const el = document.createElement('avatar-motion')
-    applyVariation(el, randomVariation({}, { pinParts: true }))
-    el.setAttribute('emblem', 'icon')
-    el.setAttribute('no-aura', '')
-    box.appendChild(el)
-    box.addEventListener('pointerenter', () => el.setAttribute('mouse-interactive', ''))
-    box.addEventListener('pointerleave', () => el.removeAttribute('mouse-interactive'))
-    frag.appendChild(box)
-    made++
-  }
-  wall.insertBefore(frag, sentinel)
-  while (wall.children.length - 1 > WINDOW) wall.removeChild(wall.firstElementChild)
-  $('wall-count').textContent = `${made} made so far · keep scrolling`
+  const avatar = tile.firstElementChild
+  applyVariation(avatar, randomVariation({}, { pinParts: true }))
+  avatar.setAttribute('no-aura', '')
+  avatar.setAttribute('no-mount', '')
+  avatar.setAttribute('transparent-bg', '')
+  tile.style.background = pick(PAPER)
+  born++
+  $('stream-count').textContent = `${born} made so far`
+
+  const x0 = box.width / 2 + Math.cos(angle) * hole
+  const y0 = box.height / 2 + Math.sin(angle) * hole
+  const x1 = box.width / 2 + Math.cos(angle) * far
+  const y1 = box.height / 2 + Math.sin(angle) * far
+
+  const anim = tile.animate(
+    [
+      { opacity: 0, transform: `translate(${x0 - TILE / 2}px, ${y0 - TILE / 2}px) scale(0.45)` },
+      { opacity: 1, offset: 0.16 },
+      { opacity: 1, offset: 0.62 },
+      { opacity: 0, transform: `translate(${x1 - TILE / 2}px, ${y1 - TILE / 2}px) scale(1)` },
+    ],
+    { duration: 5200 + Math.random() * 3600, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' },
+  )
+  anim.onfinish = () => launch(tile)
+  tile.anim = anim
 }
 
-new IntersectionObserver(
-  (entries) => { if (entries.some((e) => e.isIntersecting)) grow() },
-  { rootMargin: '700px' },
-).observe(sentinel)
-
-// The observer needs a laid-out viewport to fire against, and there are real
-// cases where it never gets one — an embedded frame with no height, a tab that
-// was hidden for the whole scroll. A rect read per scroll covers those.
-let growing = false
-function maybeGrow() {
-  if (growing) return
-  const r = sentinel.getBoundingClientRect()
-  if (r.top - (window.innerHeight || 0) > 700) return
-  growing = true
-  grow()
-  growing = false
+const tiles = []
+for (let i = 0; i < DENSITY; i++) {
+  const tile = document.createElement('div')
+  tile.className = 'tile'
+  tile.appendChild(document.createElement('avatar-motion'))
+  stage.appendChild(tile)
+  tiles.push(tile)
 }
-addEventListener('scroll', maybeGrow, { passive: true })
-addEventListener('resize', maybeGrow)
 
-grow()
+// Spread the first launches over one cycle, otherwise the whole stream pulses
+// in and out together like a heartbeat.
+let started = false
+function start() {
+  if (started) return
+  started = true
+  tiles.forEach((tile, i) => setTimeout(() => launch(tile), (i * 5200) / DENSITY))
+}
+
+// Off-screen the stream is work nobody sees, so it holds still until it is.
+new IntersectionObserver((entries) => {
+  const visible = entries[0].isIntersecting
+  if (visible) started ? tiles.forEach((t) => t.anim?.play()) : start()
+  else tiles.forEach((t) => t.anim?.pause())
+}, { rootMargin: '200px' }).observe(stream)

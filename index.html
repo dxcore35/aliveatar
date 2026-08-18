@@ -106,58 +106,40 @@
       h2 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; }
       .sub { margin: 0 0 26px; color: var(--muted); max-width: 44em; }
 
-      /* ── avatars in a row ────────────────────────────────────────── */
-      .row {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 14px;
-      }
-      .cell { display: grid; gap: 8px; justify-items: center; }
-      .cell .box {
-        width: 100%; aspect-ratio: 1; border-radius: 18px; overflow: hidden;
-        border: 1px solid var(--line); background: var(--raised);
-      }
-      .cell avatar-motion { width: 100%; height: 100%; display: block; }
-      .cell span {
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.7rem;
+      /* ── what it plugs into: one word each, nothing more ─────────── */
+      .badges {
+        list-style: none; margin: 4px 0 0; padding: 0;
+        display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
         color: var(--muted);
       }
-
-      /* ── code, blobatar-style ────────────────────────────────────── */
-      .snips { display: grid; gap: 24px; }
-      @media (min-width: 860px) { .snips { grid-template-columns: 1fr 1fr; } }
-      .snip { display: flex; flex-direction: column; gap: 12px; }
-      .caption {
-        display: flex; align-items: baseline; justify-content: space-between;
-        color: var(--muted); font-size: 0.75rem; text-transform: lowercase;
-      }
-      .caption .file { font-family: ui-monospace, 'SF Mono', Menlo, monospace; text-transform: none; }
-      .card {
-        position: relative; border: 1px solid var(--line); border-radius: 16px;
+      .badges li {
+        border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
         background: color-mix(in oklab, var(--raised) 60%, transparent);
+        transition: color 0.15s, border-color 0.15s;
       }
-      .card pre {
-        margin: 0; padding: 20px 56px 20px 20px; overflow-x: auto;
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-        font-size: 0.8rem; line-height: 1.7;
-      }
-      .card .copy {
-        position: absolute; top: 12px; right: 12px; padding: 8px; border-radius: 8px;
-        border: 0; background: transparent; color: var(--muted); cursor: pointer;
-        display: flex; transition: color 0.15s, background 0.15s;
-      }
-      .card .copy:hover { color: var(--ink); background: color-mix(in oklab, var(--line) 60%, transparent); }
-      .k { color: var(--key); }
-      .s { color: var(--str); }
-      .m { color: var(--muted); }
+      .badges li:hover { color: var(--ink); border-color: color-mix(in oklab, var(--muted) 50%, transparent); }
 
-      /* ── endless wall ────────────────────────────────────────────── */
-      .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
-      .wall .box {
-        aspect-ratio: 1; border-radius: 14px; overflow: hidden;
-        border: 1px solid var(--line); background: var(--raised);
+      /* ── radial stream: faces fly out, the words hold the centre ─── */
+      .stream {
+        position: relative; overflow: hidden; padding: 0;
+        min-height: min(88vh, 780px); display: grid; place-items: center;
       }
-      .wall avatar-motion { width: 100%; height: 100%; display: block; }
+      .stage { position: absolute; inset: 0; pointer-events: none; }
+      .tile {
+        position: absolute; left: 0; top: 0; width: 112px; height: 112px;
+        border-radius: 20px; overflow: hidden; will-change: transform, opacity;
+        opacity: 0;
+      }
+      .tile avatar-motion { width: 100%; height: 100%; display: block; }
+      .stream-copy {
+        position: relative; z-index: 2; text-align: center; pointer-events: none;
+        padding: 26px 30px; max-width: 30em;
+      }
+      .stream-copy h2 { margin: 0 0 6px; }
+      .stream-copy .sub { margin: 0; }
       .count {
-        margin: 16px 0 0; text-align: center; color: var(--muted);
+        margin: 14px 0 0; color: var(--muted);
         font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
       }
 
@@ -207,91 +189,24 @@
           </span>
         </button>
         <p class="hint">move your cursor</p>
+        <ul class="badges">
+          <li>MCP</li>
+          <li>CLI</li>
+          <li>Web Component</li>
+          <li>React</li>
+          <li>Vue</li>
+          <li>Zero deps</li>
+        </ul>
       </div>
     </div>
 
-    <!-- ── what the face reports ────────────────────────────────────── -->
-    <section>
-      <div class="wrap">
-        <h2>It shows what your agent is doing</h2>
-        <p class="sub">One attribute. The whole face follows.</p>
-        <div class="row" id="behaviours"></div>
-      </div>
-    </section>
-
-    <!-- ── the code ─────────────────────────────────────────────────── -->
-    <section>
-      <div class="wrap">
-        <h2>Drop the tag. Drive it from anywhere.</h2>
-        <p class="sub">
-          A web component in the page, a command in your shell, an MCP tool for
-          an AI agent &mdash; MCP is the standard way a model calls a tool, so
-          Claude can move the face itself.
-        </p>
-
-        <div class="snips">
-          <div class="snip">
-            <div class="caption"><span>in your page</span><span class="file">index.html</span></div>
-            <div class="card">
-              <button class="copy" data-copy="#c-html" aria-label="Copy code">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5" /></svg>
-              </button>
-              <pre id="c-html"><span class="m">&lt;script</span> <span class="m">type=</span><span class="s">"module"</span> <span class="m">src=</span><span class="s">"avatar-motion/src/avatar-motion.js"</span><span class="m">&gt;&lt;/script&gt;</span>
-
-&lt;avatar-motion
-  <span class="m">seed=</span><span class="s">"reception-01"</span>
-  <span class="m">state=</span><span class="s">"listening"</span>
-/&gt;</pre>
-            </div>
-          </div>
-
-          <div class="snip">
-            <div class="caption"><span>in your app</span><span class="file">agent.js</span></div>
-            <div class="card">
-              <button class="copy" data-copy="#c-js" aria-label="Copy code">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5" /></svg>
-              </button>
-              <pre id="c-js">avatar.<span class="k">send</span>({ type: <span class="s">'state'</span>, state: <span class="s">'thinking'</span> })
-avatar.<span class="k">send</span>({ type: <span class="s">'tool.start'</span>, name: <span class="s">'find_slot'</span> })
-avatar.<span class="k">send</span>({ type: <span class="s">'speech.attach'</span>, stream })</pre>
-            </div>
-          </div>
-
-          <div class="snip">
-            <div class="caption"><span>from a terminal</span><span class="file">cli</span></div>
-            <div class="card">
-              <button class="copy" data-copy="#c-cli" aria-label="Copy code">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5" /></svg>
-              </button>
-              <pre id="c-cli"><span class="m">$</span> avatar state <span class="s">listening</span>
-<span class="m">$</span> avatar random <span class="s">kind=customer</span>
-<span class="m">$</span> avatar options</pre>
-            </div>
-          </div>
-
-          <div class="snip">
-            <div class="caption"><span>from an ai agent</span><span class="file">mcp</span></div>
-            <div class="card">
-              <button class="copy" data-copy="#c-mcp" aria-label="Copy code">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5" /></svg>
-              </button>
-              <pre id="c-mcp"><span class="m">$</span> claude mcp add avatar <span class="m">--</span> bun mcp/server.js
-
-<span class="m"># 19 tools, discovered automatically</span>
-avatar_state · avatar_tool_start · avatar_random</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── it never repeats ─────────────────────────────────────────── -->
-    <section>
-      <div class="wrap">
+    <!-- ── it never repeats: a radial stream, heading in the blank centre ── -->
+    <section class="stream" id="stream">
+      <div class="stage" id="stage" aria-hidden="true"></div>
+      <div class="stream-copy">
         <h2>It never runs out of people</h2>
-        <p class="sub">Every face below is made as it reaches you.</p>
-        <div class="wall" id="wall"></div>
-        <p class="count" id="wall-count"></p>
+        <p class="sub">Every face is made the moment it appears.</p>
+        <p class="count" id="stream-count"></p>
       </div>
     </section>
 
