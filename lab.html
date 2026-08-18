@@ -6,10 +6,9 @@
     <meta name="color-scheme" content="light dark" />
     <title>Lab — avatar-motion</title>
     <style>
-      /* The lab shares the landing page's palette and type, but it is a
-         workbench: the subject is big and first, the controls are quiet and
-         below it. Panels are not cards — a card inside a card inside a tab is
-         three borders saying nothing. A hairline and a label do the same job. */
+      /* One language for the whole workbench: a label, then pills. States,
+         expressions, eye animations and switches all use it, so there is
+         nothing new to learn after the first row. */
       :root {
         --page: #f4f2ec;
         --raised: #fffdf7;
@@ -34,172 +33,154 @@
         }
       }
       * { box-sizing: border-box; }
-      /* A <figure> carries 40px of UA margin on each side. In a 74px grid cell
-         that leaves nothing, and the crowd renders as fifty invisible boxes. */
       figure { margin: 0; }
       body {
-        margin: 0; padding: 0 24px 96px;
+        margin: 0; padding: 0 22px 64px;
         background: var(--page); color: var(--ink);
-        font: 15px/1.6 ui-sans-serif, system-ui, sans-serif;
+        font: 14px/1.55 ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      .frame { max-width: 1200px; margin: 0 auto; }
+      .frame { max-width: 1240px; margin: 0 auto; }
+      p { margin: 0; }
+      .note { color: var(--muted); font-size: 0.78rem; }
 
-      /* ── header ────────────────────────────────────────────────────── */
+      /* ── header is one thin line: where you are, and what is happening ── */
       header {
-        display: flex; align-items: baseline; justify-content: space-between;
-        gap: 28px; flex-wrap: wrap; padding: 22px 0 26px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 20px; flex-wrap: wrap; padding: 14px 0 12px;
       }
-      h1 { margin: 5px 0 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.04em; }
       .kicker { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
       .kicker a { color: inherit; text-decoration: none; }
       .kicker a:hover { color: var(--ink); }
-      header p { margin: 0; color: var(--muted); max-width: 46ch; font-size: 0.9rem; }
-      header a { color: var(--accent-ink); }
-      p { margin: 0; }
-      .note { color: var(--muted); font-size: 0.84rem; }
-      code, .mono { font-family: var(--mono); font-size: 0.82em; }
+      .status {
+        display: flex; gap: 13px; flex-wrap: wrap;
+        font-family: var(--mono); font-size: 0.66rem; color: var(--muted);
+      }
+      .status b { color: var(--ink); font-weight: 500; }
 
-      /* ── stage: the subject, full width, before any control ────────── */
+      /* ── the centrepiece ────────────────────────────────────────────── */
       .stage {
         display: grid; gap: 14px; justify-items: center;
-        padding: 20px 20px 22px; margin-bottom: 22px;
-        border: 1px solid var(--line); border-radius: 22px; background: var(--raised);
+        padding: 22px 20px 20px; margin-bottom: 16px;
+        border: 1px solid var(--line); border-radius: 20px; background: var(--raised);
       }
-      .stage-row {
-        display: flex; gap: 26px; align-items: center; justify-content: center;
-        flex-wrap: wrap; width: 100%;
+      .stage-avatars {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px; width: 100%; max-width: 760px;
       }
-      .stage-avatars { display: grid; grid-template-columns: repeat(2, 200px); gap: 14px; }
-      .stage-side { display: grid; gap: 12px; justify-items: start; max-width: 480px; }
-      .stage-side .status { justify-content: flex-start; }
-      .stage-side .actions { justify-content: flex-start; }
-      .stage-side .stage-note { text-align: left; min-height: 0; }
-      .figure { display: grid; gap: 9px; justify-items: center; }
+      .figure { display: grid; gap: 7px; justify-items: center; }
       .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
       /* Agents carry no background of their own, so the stage supplies the page
          each theme would put behind them. */
       .box.theme-dark { background: #14161b; }
       .box.theme-light { background: #f4f2ec; }
       .figure figcaption {
-        font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
-        letter-spacing: 0.08em; text-transform: uppercase;
+        font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
+        letter-spacing: 0.1em; text-transform: uppercase;
       }
-      .status {
-        display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;
-        font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
+      .actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; align-items: center; }
+      .stage-note { text-align: center; max-width: 60ch; }
+      .stage-note:empty { display: none; }
+      .meter { width: 110px; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 60ms linear; }
+
+      /* ── who: one line, no field labels — the options say it ────────── */
+      .who {
+        display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+        padding: 10px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 14px;
       }
-      .status b { color: var(--ink); font-weight: 500; }
-      .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
-      .stage-note { text-align: center; max-width: 54ch; }
-      .meter { width: 120px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
-      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent-ink); transition: width 60ms linear; }
+      .who #part-pickers { display: contents; }
+      .who input[type='text'] { width: 128px; }
+      .who #age { width: 62px; }
+      .who input[type='color'] { width: 30px; height: 26px; padding: 1px; }
+      .who select { max-width: 128px; }
 
-      /* ── two columns below: identity on the left, the work on the right */
-      .shell { display: grid; gap: 22px; }
-      .who { width: 100%; border-top: 1px solid var(--line); padding-top: 16px; }
-      .who .grid2 { grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 9px; }
-      .who .note { display: none; }
-      .rail { position: sticky; top: 20px; display: grid; gap: 26px; }
-
-      /* A panel is a label and a hairline, not a box. */
-      .panel { display: grid; gap: 10px; }
-      .panel + .panel { border-top: 1px solid var(--line); padding-top: 16px; }
-      h3 {
-        margin: 0; font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
-        letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-      }
-
-      /* ── controls ──────────────────────────────────────────────────── */
-      .row { display: flex; gap: 8px; flex-wrap: wrap; }
+      /* ── controls ───────────────────────────────────────────────────── */
       button, select, input[type='text'] {
-        font: inherit; font-size: 0.78rem; color: var(--ink); background: transparent;
-        border: 1px solid var(--line); border-radius: 9px; padding: 6px 9px;
+        font: inherit; font-size: 0.74rem; color: var(--ink); background: var(--raised);
+        border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
         transition: border-color 0.14s, color 0.14s, background 0.14s;
       }
       button { cursor: pointer; }
-      button:hover { border-color: var(--muted); }
-      /* One accent, one meaning: this is the thing that is on. */
-      button.primary[aria-pressed='true'], button[aria-pressed='true'] {
-        background: var(--accent); border-color: var(--accent); color: var(--on-accent);
-      }
-      input[type='text'], select { background: var(--raised); }
-      input[type='range'] { width: 100%; height: 14px; accent-color: var(--accent-ink); }
-      label.control { display: grid; gap: 3px; }
-      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted); }
-      .control-head output { color: var(--accent-ink); font-family: var(--mono); font-size: 0.76rem; }
-      .switch { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.78rem; }
-      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-      /* Fill the width. Forty-one expressions on one screen beats four tidy
-         columns you have to scroll. */
-      .grid5 { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; }
-      .grid5 button { padding: 5px 8px; font-size: 0.68rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 4px; }
-      .grid3 button { padding: 6px 8px; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-      .chips button {
+      button:hover { border-color: var(--muted); color: var(--ink); }
+      input[type='color'] { border: 1px solid var(--line); border-radius: 8px; background: var(--raised); cursor: pointer; }
+
+      /* Every pill row: a label, then the pills, flowing until the width
+         runs out. Nothing gets a line of its own. */
+      .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+      .chips button, .pill {
         display: inline-flex; align-items: center; gap: 5px;
-        border-radius: 999px; padding: 4px 9px; font-size: 0.68rem;
-        font-family: var(--mono); color: var(--muted);
+        border: 1px solid var(--line); border-radius: 999px;
+        padding: 4px 10px; font-family: var(--mono); font-size: 0.66rem;
+        color: var(--muted); background: transparent; cursor: pointer;
       }
       .chips button svg { flex: none; opacity: 0.7 }
-      .chips button[aria-pressed='true'] svg { opacity: 1 }
-      .group-label { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-
-      /* ── tabs ──────────────────────────────────────────────────────── */
-      .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-      .tab {
-        background: transparent; border: 0; border-bottom: 2px solid transparent;
-        border-radius: 0; color: var(--muted); padding: 11px 2px; margin-right: 20px;
-        font-size: 0.92rem;
+      /* The one highlight in the lab, in the avatar's own colour — and the ink
+         on it is chosen for contrast, never inherited. */
+      .chips button[aria-pressed='true'],
+      .pill:has(input:checked) {
+        background: var(--accent); border-color: var(--accent); color: var(--on-accent);
       }
-      .tab:hover { color: var(--ink); border-color: transparent; }
-      .tab[aria-selected='true'] { border-bottom-color: var(--accent-ink); color: var(--ink); background: transparent; }
-      .tab-panel[hidden] { display: none; }
-      /* The four knob panels are short; side by side they fit on one screen
-         with the avatars still visible above them. */
-      .knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 26px; }
-      .knobs > .panel + .panel { border-top: 0; padding-top: 0; }
-      .tab-panel { display: grid; gap: 18px; padding-top: 18px; }
-      .tab-panel > .panel + .panel { border-top: 1px solid var(--line); padding-top: 16px; }
+      .chips button[aria-pressed='true'] svg { opacity: 1 }
+      .pill input { position: absolute; opacity: 0; pointer-events: none; }
+      .group-label {
+        font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--muted);
+        padding: 0 7px 0 12px; white-space: nowrap;
+      }
+      .chips > .group-label:first-child { padding-left: 0; }
 
-      .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px; }
-      .fact { background: var(--raised); border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; color: var(--muted); font-size: 0.7rem; }
-      .fact code { display: block; color: var(--ink); margin-bottom: 4px; overflow-wrap: anywhere; }
+      .dials { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 16px; }
+      label.control { display: grid; gap: 1px; }
+      .control-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+      .control-head output { color: var(--accent-ink); }
+      input[type='range'] { width: 100%; height: 13px; accent-color: var(--accent-ink); }
 
-      /* Tight on purpose: fifty faces at once is the point, so the gap is the
-         smallest that still reads as separate tiles. */
+      /* ── panels are a label and a hairline, never a card ─────────────── */
+      .shell { display: grid; }
+      .panel { display: grid; gap: 8px; }
+      h3 {
+        margin: 0; font-family: var(--mono); font-size: 0.62rem; font-weight: 500;
+        letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+      }
+      #tab-drive { display: grid; gap: 14px; }
+      #tab-drive > .panel + .panel { border-top: 1px solid var(--line); padding-top: 12px; }
+      /* The gallery is a drawer under the controls, opened from the stage. */
+      .gallery-panel[hidden] { display: none; }
+      .gallery-panel { border-top: 1px solid var(--line); padding-top: 12px; }
+
+      /* ── crowd ──────────────────────────────────────────────────────── */
       .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 4px; align-items: start; }
-      .gallery .figure { justify-items: stretch; gap: 3px; }
-      .gallery .figure > .box { border-radius: 10px; width: 100%; height: auto; border: 1px solid var(--line); }
-      .gallery figcaption { text-align: center; text-transform: none; letter-spacing: 0; font-size: 0.6rem; }
-
-      .pager { display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: wrap; }
-      .pager button { min-width: 34px; padding: 6px 9px; font-family: var(--mono); font-size: 0.76rem; }
+      .gallery .figure { justify-items: stretch; gap: 0; }
+      .gallery .figure > .box { border-radius: 10px; width: 100%; height: auto; border: 1px solid var(--line); cursor: pointer; }
+      .pager { display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+      .pager button { min-width: 32px; font-family: var(--mono); font-size: 0.7rem; }
       .pager button[disabled] { opacity: 0.35; cursor: default; }
-      .pager .gap { color: var(--muted); font-family: var(--mono); font-size: 0.76rem; padding: 0 2px; }
+      .pager .gap { color: var(--muted); font-family: var(--mono); font-size: 0.7rem; }
 
-      @media (max-width: 900px) {
-        .shell { grid-template-columns: 1fr; gap: 26px; }
-        .rail { position: static; }
-        .grid2, .grid5 { grid-template-columns: 1fr 1fr; }
-        .stage-avatars { grid-template-columns: 1fr 1fr; }
+      @media (max-width: 760px) {
+        .stage-avatars { grid-template-columns: 1fr 1fr; gap: 10px; }
       }
     </style>
   </head>
   <body>
     <div class="frame">
       <header>
-        <div>
-          <span class="kicker"><a href="./">&#8592; avatar-motion</a> &nbsp;/&nbsp; lab</span>
-          <h1>The lab</h1>
-        </div>
+        <span class="kicker"><a href="./">&#8592; avatar&#8209;motion</a> &nbsp;/&nbsp; lab</span>
+        <p class="status">
+          <span>state <b id="r-state">idle</b></span>
+          <span>expr <b id="r-expr">00</b></span>
+          <span>turn <b id="r-turn">0&deg;</b></span>
+          <span>cut <b id="r-cut">2</b></span>
+          <span><b id="r-fps">&ndash;</b> fps</span>
+          <span><b id="r-active">0</b>/<b id="r-total">0</b></span>
+          <span>gl <b id="r-aura">0</b>/3</span>
+        </p>
       </header>
 
-      <!-- ── Stage: the subject, full width, before any control ──────── -->
+      <!-- ── The centrepiece: one person, both themes ─────────────────── -->
       <section class="stage">
-        <div class="stage-row">
-          <div class="stage-avatars">
+        <div class="stage-avatars">
           <figure class="figure">
             <div class="box theme-dark" id="box-live"></div>
             <figcaption>dark</figcaption>
@@ -210,191 +191,112 @@
           </figure>
         </div>
 
-          <div class="stage-side">
-            <p class="status">
-          <span>state <b id="r-state">idle</b></span>
-          <span>expr <b id="r-expr">00</b></span>
-          <span>turn <b id="r-turn">0&deg;</b></span>
-          <span>eyes cut <b id="r-cut">2</b></span>
-          <span><b id="r-fps">&ndash;</b> fps</span>
-          <span>animating <b id="r-active">0</b>/<b id="r-total">0</b></span>
-          <span>shaders <b id="r-aura">0</b>/3</span>
-        </p>
-            <div class="actions">
-          <button class="primary" id="btn-demo" aria-pressed="false">Auto demo</button>
+        <div class="actions">
+          <button class="primary" id="btn-demo" aria-pressed="false">Change everything</button>
+          <button id="btn-random">Random</button>
+          <button id="btn-gallery" aria-pressed="false">Gallery</button>
           <button id="btn-reset">Reset</button>
           <button id="btn-mic" aria-pressed="false">Speak into it</button>
           <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
         </div>
-            <p class="note stage-note" id="demo-note"></p>
-            <p class="note stage-note" id="mic-note"></p>
-          </div>
-        </div>
+        <p class="note stage-note" id="demo-note"></p>
+        <p class="note stage-note" id="mic-note"></p>
+      </section>
 
-        <section class="panel who">
-          <h3>Who</h3>
-          <div class="grid2">
-            <label class="control">
-              <span class="control-head"><span>Seed</span></span>
-              <input type="text" id="seed" value="agent:reception-01" />
-            </label>
-            <label class="control">
-              <span class="control-head"><span>Kind</span></span>
-              <select id="kind">
-                <option value="agent">agent — AI mascot</option>
-                <option value="customer">customer — person</option>
-              </select>
-            </label>
-            <label class="control">
-              <span class="control-head"><span>Agent colour</span></span>
-              <input type="color" id="color" value="#3B82F6" style="height:36px;padding:2px" />
-            </label>
-            <label class="control">
-              <span class="control-head"><span>Gender</span></span>
-              <select id="gender">
-                <option value="">unset</option>
-                <option value="female">female</option>
-                <option value="male">male</option>
-              </select>
-            </label>
-            <label class="control">
-              <span class="control-head"><span>Age</span></span>
-              <input type="text" id="age" placeholder="from seed" inputmode="numeric" />
-            </label>
-          </div>
-          <p class="note" id="kind-note"></p>
-          <div class="grid2" id="part-pickers"></div>
-          <div class="row">
-            <button id="btn-random">Random person</button>
-            <button id="btn-head" class="primary">New head + colours</button>
-          </div>
-          </section>
+      <!-- ── Who ──────────────────────────────────────────────────────── -->
+      <section class="who">
+        <span class="group-label">who</span>
+        <input type="text" id="seed" value="agent:reception-01" title="Seed" />
+        <select id="kind" title="Kind">
+          <option value="agent">agent</option>
+          <option value="customer">person</option>
+        </select>
+        <input type="color" id="color" value="#3B82F6" title="Agent colour" />
+        <select id="gender" title="Gender">
+          <option value="">any gender</option>
+          <option value="female">female</option>
+          <option value="male">male</option>
+        </select>
+        <input type="text" id="age" placeholder="age" inputmode="numeric" title="Age" />
+        <span id="part-pickers"></span>
+        <span class="note" id="kind-note" hidden></span>
+        <span class="note" id="skull-note" hidden></span>
       </section>
 
       <div class="shell">
         <main>
-          <div class="tabs" role="tablist">
-            <button class="tab" role="tab" aria-selected="true" data-tab="drive">Drive</button>
-            <button class="tab" role="tab" aria-selected="false" data-tab="crowd">Crowd</button>
-          </div>
-
-          <section class="tab-panel" id="tab-drive" role="tabpanel">
+          <section id="tab-drive">
             <section class="panel">
-              <h3>39 states</h3>
-              <div id="state-groups" style="display:grid;gap:12px"></div>
-            </section>
-            <section class="panel">
-              <h3 id="sd-title">idle</h3>
-              <p class="note" id="sd-note"></p>
-              <div class="facts">
-                <div class="fact"><code id="sd-pool">—</code>expression pool</div>
-                <div class="fact"><code id="sd-expr">—</code>expression change</div>
-                <div class="fact"><code id="sd-blink">—</code>blink cadence</div>
-                <div class="fact"><code id="sd-motion">—</code>body motion</div>
-              </div>
-            <section class="panel">
-              <h3>Expression</h3>
-              <div class="grid5" id="expr-grid"></div>
-              <label class="control">
-                <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
-                <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
-              </label>
-            </section>
-
-            <div class="knobs">
-            <section class="panel">
-              <h3>Eye animations</h3>
-              <p class="note">
-                These are not poses — they are performances, with a length and a
-                shape over time. They come from bloub's animated states, where
-                the interesting part is the middle of the move, not where it
-                ends. Each one plays over whatever expression is showing and
-                hands the face back. A person takes a smaller share of the big
-                ones, so the beat is the same on both kinds.
-              </p>
-              <div class="grid3" id="act-grid"></div>
-              <p class="note" id="act-note" style="min-height:2.6em"></p>
-              <div class="row" style="justify-content:center">
-                <button class="primary" id="btn-acts" aria-pressed="false">▶ Play all animations</button>
-              </div>
+              <h3>states</h3>
+              <div class="chips" id="state-groups"></div>
             </section>
 
             <section class="panel">
-              <h3>Aim &mdash; eyes, head and depth</h3>
-              <label class="control">
-                <span class="control-head"><span>Horizontal</span><output id="o-gx">0.00</output></span>
-                <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Vertical</span><output id="o-gy">0.00</output></span>
-                <input type="range" id="gy" min="-1" max="1" step="0.01" value="0" />
-              </label>
-              <div class="switch">
-                <label for="mouse">Eyes follow the pointer</label>
-                <input type="checkbox" id="mouse" />
-              </div>
-              <p class="note" id="gaze-note"></p>
-            
-              <label class="control">
-                <span class="control-head"><span>Turn</span><output id="o-turn">0°</output></span>
-                <input type="range" id="turn" min="-110" max="110" step="1" value="0" />
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Eye size</span><output id="o-scale">1.00×</output></span>
-                <input type="range" id="scale" min="0.3" max="2" step="0.02" value="1" />
-              </label>
-              <div class="switch"><label for="emphasis">Emphasis (bigger eyes)</label><input type="checkbox" id="emphasis" /></div>
-              <p class="note">
-                The Humation face is drawn in three-quarter view, so it starts
-                already turned. Around <b id="front-angle">+27°</b> the eyes reach a
-                straight-on pose; past about ±90° each eye slips behind the head
-                and hides.
-              </p>
+              <h3>expressions</h3>
+              <div class="chips" id="expr-grid"></div>
             </section>
 
             <section class="panel">
-              <h3>Look</h3>
-              <p class="note">
-                Everything here is drawn once and then costs nothing per frame —
-                the texture is a tiled image, not a filter, and the shading is
-                duplicated paths, not an offscreen buffer.
-              </p>
-              <div class="switch"><label for="look">Lighting, texture and grain</label><input type="checkbox" id="look" checked /></div>
-              <div class="switch"><label for="aura">Agent aura (WebGL shader)</label><input type="checkbox" id="aura" checked /></div>
-              <label class="control">
-                <span class="control-head"><span>Emblem over the head</span></span>
+              <h3>eye animations</h3>
+              <div class="chips" id="act-grid"></div>
+              <p class="note" id="act-note" hidden></p>
+            </section>
+
+            <section class="panel">
+              <h3>switches</h3>
+              <div class="chips">
+                <label class="pill"><input type="checkbox" id="mouse" /><span>eyes follow pointer</span></label>
+                <label class="pill"><input type="checkbox" id="emphasis" /><span>bigger eyes</span></label>
+                <label class="pill"><input type="checkbox" id="look" checked /><span>light + texture</span></label>
+                <label class="pill"><input type="checkbox" id="aura" checked /><span>aura shader</span></label>
+                <label class="pill"><input type="checkbox" id="auto-blink" checked /><span>auto blink</span></label>
+                <label class="pill"><input type="checkbox" id="auto-expr" checked /><span>auto expression</span></label>
+                <label class="pill"><input type="checkbox" id="auto-motion" checked /><span>auto motion</span></label>
+                <span class="group-label">emblem</span>
                 <select id="emblem">
-                  <option value="icon">drawn icon set</option>
-                  <option value="item">Humation hat / pet</option>
-                  <option value="off">nothing</option>
+                  <option value="icon">icon</option>
+                  <option value="item">hat / pet</option>
+                  <option value="off">none</option>
                 </select>
-              </label>
+                <button class="primary" id="btn-acts" aria-pressed="false">play all animations</button>
+              </div>
             </section>
 
             <section class="panel">
-              <h3>Automation</h3>
-              <div class="switch"><label for="auto-blink">Blink on the state's cadence</label><input type="checkbox" id="auto-blink" checked /></div>
-              <div class="switch"><label for="auto-expr">Rotate expressions from the state's pool</label><input type="checkbox" id="auto-expr" checked /></div>
-              <div class="switch"><label for="auto-motion">Breathe, sway, nod, wander</label><input type="checkbox" id="auto-motion" checked /></div>
-              <p class="note">A blink takes 320 ms: 42 % closing, 58 % opening, never fully flat (4 % floor).</p>
+              <h3>dials</h3>
+              <div class="dials">
+                <label class="control">
+                  <span class="control-head"><span>spring</span><output id="o-spring">7.0</output></span>
+                  <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
+                </label>
+                <label class="control">
+                  <span class="control-head"><span>gaze x</span><output id="o-gx">0.00</output></span>
+                  <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
+                </label>
+                <label class="control">
+                  <span class="control-head"><span>gaze y</span><output id="o-gy">0.00</output></span>
+                  <input type="range" id="gy" min="-1" max="1" step="0.01" value="0" />
+                </label>
+                <label class="control">
+                  <span class="control-head"><span>turn</span><output id="o-turn">0&deg;</output></span>
+                  <input type="range" id="turn" min="-110" max="110" step="1" value="0" />
+                </label>
+                <label class="control">
+                  <span class="control-head"><span>eye size</span><output id="o-scale">1.00&times;</output></span>
+                  <input type="range" id="scale" min="0.3" max="2" step="0.02" value="1" />
+                </label>
+              </div>
+              <p class="note" id="gaze-note" hidden></p>
+              <span hidden id="front-angle"></span>
             </section>
-            </div>
           </section>
 
-          <section class="tab-panel" id="tab-crowd" role="tabpanel" hidden>
-            <section class="panel">
-              <h3>Different people, different states, one engine</h3>
-              <p class="note">
-                Fifty a page, and the pages never run out. Every face is a fresh
-                seed, kind, colour, head shape, age and state. Hover one to make
-                those eyes follow you; the tooltip says who it is.
-              </p>
+          <section class="panel gallery-panel" id="gallery-panel" hidden>
+              <h3>pick anyone</h3>
               <div class="gallery" id="gallery"></div>
               <nav class="pager" id="crowd-pager" aria-label="Crowd pages"></nav>
               <p class="note" id="crowd-count" style="text-align:center"></p>
-            </section>
           </section>
-
         </main>
       </div>
     </div>

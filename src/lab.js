@@ -84,9 +84,17 @@ function paintAccent(colour) {
   const ink = dark
     ? (lum < 0.45 ? mix(0.42, 'white') : colour)
     : (lum > 0.62 ? mix(0.34, 'black') : colour)
+  // A pill filled with a near-black brown disappears into a near-black page,
+  // so a fill that is too close to the page gets lifted off it first. The ink
+  // is then chosen against the FILL, not against the raw colour.
+  const fill = dark ? (lum < 0.3 ? mix(0.45, 'white') : colour) : lum > 0.82 ? mix(0.3, 'black') : colour
+  const fillLum = (() => {
+    const [fr, fg, fb] = [1, 3, 5].map((i) => parseInt(fill.slice(i, i + 2), 16))
+    return (0.299 * fr + 0.587 * fg + 0.114 * fb) / 255
+  })()
   const root = document.documentElement.style
-  root.setProperty('--accent', colour)
-  root.setProperty('--on-accent', lum > 0.58 ? '#101010' : '#ffffff')
+  root.setProperty('--accent', fill)
+  root.setProperty('--on-accent', fillLum > 0.58 ? '#101010' : '#ffffff')
   root.setProperty('--accent-ink', ink)
 }
 
@@ -294,7 +302,7 @@ function demoBeat() {
   if (roll(0.2)) drive('mouse', roll(0.5))
   if (roll(0.18)) drive('look', roll(0.7))
   if (roll(0.15) && agent) drive('aura', roll(0.7))
-  if (roll(0.15)) drive('emblem', pickFrom(['icon', 'item', 'off']))
+  if (roll(0.4)) drive('emblem', pickFrom(['icon', 'item', 'off']))
   if (roll(0.2)) drive('auto-blink', roll(0.85))
   if (roll(0.2)) drive('auto-motion', roll(0.85))
 
@@ -313,8 +321,9 @@ function demoBeat() {
   // Who changes too, one field at a time. A whole new stranger every beat is
   // just a slideshow; moving ONE dropdown and leaving the rest is what shows
   // which dropdown did what.
+  driveIdentity()
   if (roll(0.5)) driveIdentity()
-  if (roll(0.1)) newPerson()
+  if (roll(0.1)) newPerson({ keepDemo: true })
 
   demoTimer = setTimeout(demoBeat, 1800 + Math.random() * 1800)
 }
@@ -323,14 +332,21 @@ function setDemo(on) {
   if (on && eyeTour) stopEyeTour()
   if (on && actTour) stopActTour()
   $('btn-demo').setAttribute('aria-pressed', String(on))
-  $('btn-demo').textContent = on ? 'Stop demo' : 'Auto demo'
+  $('btn-demo').textContent = on ? 'Stop' : 'Change everything'
   $('turn').disabled = on
   clearTimeout(demoTimer)
   if (on) {
     live.startDemo()
     demoTimer = setTimeout(demoBeat, 700)
   } else {
+    // Stop means freeze, not rewind: keep the person, the state and every
+    // setting the demo left behind, and just stop changing them.
+    const held = live.getAttribute('state') || 'idle'
     live.stopDemo()
+    syncTwin()
+    both((a) => a.setState(held))
+    document.querySelectorAll('[data-state]').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.state === held)))
     $('demo-note').textContent = ''
     applyControls()
   }
@@ -446,8 +462,8 @@ $('btn-reset').onclick = () => {
 // with every control set to the values that built them. The panel is then a
 // readout of that character, which is the only way to answer "how was this one
 // made" without guessing.
-function adopt(v) {
-  setDemo(false)
+function adopt(v, { keepDemo = false } = {}) {
+  if (!keepDemo) setDemo(false)
   $('seed').value = v.seed || ''
   $('kind').value = v.kind || 'agent'
   if (v.color) $('color').value = v.color
@@ -462,73 +478,42 @@ function adopt(v) {
 }
 
 /** A fresh stranger on the stage, controls and all. */
-function newPerson() {
-  adopt(randomVariation({}, { pinParts: true }))
+function newPerson(opts) {
+  adopt(randomVariation({}, { pinParts: true }), opts)
 }
 
 $('btn-random').onclick = () => newPerson()
 
-// ── New head + colours ──────────────────────────────────────────────────────
-// One button that walks the whole agent LOOK: a different generated skull, a
-// different signature colour (which is the skin), and a fresh seed so the hair,
-// outfit and face proportions move with it.
-//
-// Stepping the skull rather than picking at random guarantees you SEE every
-// shape if you keep pressing — a random pick repeats and hides the rare ones,
-// which is exactly how you end up thinking a feature is not implemented.
-let headStep = 0
-$('btn-head').onclick = () => {
-  if ($('kind').value !== 'agent') {
-    $('kind').value = 'agent'
-  }
-  const shapes = SKULL_NAMES
-  headStep = (headStep + 1) % shapes.length
-  $('part-skull').value = shapes[headStep]
-  $('color').value = pickFrom(AGENT_PALETTE)
-  $('seed').value = `agent:${Math.random().toString(36).slice(2, 9)}`
-  for (const slot of SLOTS) $(`part-${slot}`).value = ''
-  rebuild()
-  $('demo-note').textContent = `head: ${shapes[headStep]}`
-}
 
 // ── Part pickers ────────────────────────────────────────────────────────────
-// ── Skull picker ────────────────────────────────────────────────────────────
-// Agents only, by design: an AI may have a head no person has, a person may not.
-$('part-pickers').insertAdjacentHTML(
-  'beforebegin',
-  `<label class="control">
-     <span class="control-head"><span>skull (agents only)</span></span>
-     <select id="part-skull">
-       <option value="">from seed</option>
-       <option value="none">none — keep the drawn head</option>
-       ${SKULL_NAMES.map((n) => `<option value="${n}">${n}</option>`).join('')}
-     </select>
-   </label>
-   <p class="note" id="skull-note" style="margin-top:-4px"></p>`,
-)
-
-$('part-pickers').innerHTML = SLOTS.map(
-  (slot) => `<label class="control">
-      <span class="control-head"><span>${slot}</span></span>
-      <select id="part-${slot}">
-        <option value="">from seed</option>
+// Bare selects on the Who row, labelled by their tooltip. A field label above
+// every one of these doubled the height of the row and said nothing the option
+// text does not already say.
+$('part-pickers').innerHTML =
+  `<select id="part-skull" title="Skull — agents only">
+     <option value="">any skull</option>
+     <option value="none">drawn skull</option>
+     ${SKULL_NAMES.map((n) => `<option value="${n}">${n}</option>`).join('')}
+   </select>` +
+  SLOTS.map(
+    (slot) => `<select id="part-${slot}" title="${slot}">
+        <option value="">any ${slot}</option>
         ${PARTS[slot].map((n) => `<option value="${n}">${n}</option>`).join('')}
-      </select>
-    </label>`,
-).join('')
+      </select>`,
+  ).join('')
 for (const slot of SLOTS) $(`part-${slot}`).addEventListener('input', rebuild)
 $('part-skull').addEventListener('input', rebuild)
 
 // ── Expression grid ─────────────────────────────────────────────────────────
-$('expr-grid').innerHTML = RINGS.map((_, i) => {
-  // The bloub entries move the head as well as the eyes, so they are marked —
-  // otherwise it looks like the avatar wanders off on its own for sixteen of
-  // the forty-one.
-  const tag = i >= BLOUB_FIRST ? ' ✦' : ''
-  return `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}${
-    i >= BLOUB_FIRST ? ' — bloub set: moves the head too' : ''
-  }">${String(i).padStart(2, '0')} ${EXPRESSION_NAMES[i].replace(/^bloub /, '')}${tag}</button>`
-}).join('')
+// Same pills as the states, with the two sets labelled the same way the state
+// groups are — so the eye reads one language across the whole panel.
+$('expr-grid').innerHTML =
+  `<span class="group-label">generated</span>` +
+  RINGS.map((_, i) => {
+    const label = EXPRESSION_NAMES[i].replace(/^bloub /, '')
+    return (i === BLOUB_FIRST ? '<span class="group-label">bloub</span>' : '') +
+      `<button data-expr="${i}" aria-pressed="${i === 0}" title="${EXPRESSION_NAMES[i]}">${label}</button>`
+  }).join('')
 $('expr-grid').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-expr]')
   if (!btn) return
@@ -541,35 +526,24 @@ $('expr-grid').addEventListener('click', (ev) => {
 })
 
 // ── State picker ────────────────────────────────────────────────────────────
-// Each chip carries the symbol that state puts over the head. It used to be a
-// separate reference sheet in its own tab, which meant reading the answer in
-// one place and pressing the button in another.
+// One flowing row: a category label, its pills, the next label, its pills. The
+// old version put every category on its own line, which pushed half the states
+// off the screen for no reason but tidiness.
 $('state-groups').innerHTML = STATE_GROUPS.map(
-  (g) => `<div>
-      <div class="group-label">${g.label}</div>
-      <div class="chips">${g.states
-        .map((s) => {
-          const [icon] = emblemFor(s)
-          return `<button data-state="${s}" aria-pressed="${s === 'idle'}">${
-            icon ? iconSvg(icon, { size: 13 }) : ''
-          }${s}</button>`
-        })
-        .join('')}</div>
-    </div>`,
+  (g) => `<span class="group-label">${g.label}</span>${g.states
+    .map((s) => {
+      const [icon] = emblemFor(s)
+      return `<button data-state="${s}" aria-pressed="${s === 'idle'}">${
+        icon ? iconSvg(icon, { size: 13 }) : ''
+      }${s}</button>`
+    })
+    .join('')}`,
 ).join('')
 
 function selectState(state) {
   if (live.hasAttribute('demo')) setDemo(false)
   both((a) => a.setState(state))
   document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === state)))
-  const fmt = (v) => (v ? `${(v[0] / 1000).toFixed(1)}–${(v[1] / 1000).toFixed(1)} s` : 'off')
-  const m = MOTION[state]
-  $('sd-title').textContent = state
-  $('sd-note').textContent = STATE_NOTES[state] || ''
-  $('sd-pool').textContent = POOLS[state].map((i) => `${i} ${EXPRESSION_NAMES[i]}`).join(' · ')
-  $('sd-expr').textContent = fmt(EXPR_CADENCE[state])
-  $('sd-blink').textContent = fmt(BLINK[state])
-  $('sd-motion').textContent = `breathe ${m.breathe} · sway ${m.sway}° · nod ${m.nod} · bounce ${m.bounce} · gaze ${m.gaze}`
 }
 $('state-groups').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-state]')
@@ -607,15 +581,6 @@ setInterval(() => {
   )
 }, 400)
 
-// ── Tabs ────────────────────────────────────────────────────────────────────
-document.querySelector('.tabs').addEventListener('click', (ev) => {
-  const tab = ev.target.closest('.tab')
-  if (!tab) return
-  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t === tab)))
-  document.querySelectorAll('.tab-panel').forEach((p) => {
-    p.hidden = p.id !== `tab-${tab.dataset.tab}`
-  })
-})
 
 // ── Crowd — fifty at a time, forever ────────────────────────────────────────
 //
@@ -651,7 +616,7 @@ function crowdTile(v) {
   box.style.cursor = 'pointer'
   box.addEventListener('click', () => {
     adopt(v)
-    document.querySelector('.tab[data-tab="drive"]')?.click()
+    setGallery(false)
     document.querySelector('.stage')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   })
   // Fifty at once means the tile is small, and a caption under a small tile is
@@ -707,6 +672,18 @@ $('crowd-pager')?.addEventListener('click', (ev) => {
 })
 
 showPage(1)
+
+// ── The gallery drawer ──────────────────────────────────────────────────────
+// Not a tab. A tab makes the crowd a place you go; this makes it a thing you
+// open, pick from, and close — which is what it is for.
+const drawer = $('gallery-panel')
+function setGallery(open) {
+  drawer.hidden = !open
+  $('btn-gallery').setAttribute('aria-pressed', String(open))
+  $('btn-gallery').textContent = open ? 'Close gallery' : 'Gallery'
+  if (open) drawer.scrollIntoView({ block: 'start', behavior: 'smooth' })
+}
+$('btn-gallery').onclick = () => setGallery(drawer.hidden)
 
 // ── Go ──────────────────────────────────────────────────────────────────────
 rebuild()
