@@ -6,8 +6,6 @@ agent is doing right now.
 
 No build step. No dependencies. MIT, all of it.
 
-**[avatar.dxcore35.eu](https://avatar.dxcore35.eu)** · **[the lab](https://avatar.dxcore35.eu/lab.html)**
-
 ![A page full of avatars streaming outward, each a different person](docs/hero.png)
 
 ## Built on
