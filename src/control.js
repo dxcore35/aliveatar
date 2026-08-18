@@ -26,8 +26,12 @@
 // channel that can crash the UI is not a control channel.
 // ---------------------------------------------------------------------------
 import { parseEmotionTags } from './speech.js'
-import { STATES, TOOL_STATES } from './states.js'
+import { STATES, TOOL_STATES, TOOL_ACTS } from './states.js'
 import { EXPRESSION_NAMES } from './expressions.js'
+import { EYE_ACTS } from './motion/eyeacts.js'
+
+/** Every eye act id, for validation and for the manifest. */
+const ACT_IDS = EYE_ACTS.map((a) => a.id)
 
 /**
  * Every command, with enough detail for an app — or a generator — to use it
@@ -69,6 +73,12 @@ export const MANIFEST = {
         args: { type: 'string', optional: true },
         result: { type: 'string', optional: true, note: 'shown when the call returns' },
         ms: { type: 'int', optional: true, default: 3600 },
+        act: {
+          type: 'enum',
+          values: ACT_IDS,
+          optional: true,
+          note: 'eye act to perform. Omit and one is chosen from the tool name; pass false to leave the eyes alone.',
+        },
       },
     },
     { type: 'tool.end', doc: 'End the running tool call early.' },
@@ -111,11 +121,37 @@ export const MANIFEST = {
         gender: { type: 'enum', values: ['male', 'female'], optional: true },
         age: { type: 'int', optional: true, note: 'drives greying, reading glasses, clothing and pace' },
       } },
+    {
+      type: 'act.play',
+      doc:
+        'Play one EYE ACT — a short performance the eyes give on top of whatever ' +
+        'expression is showing, then hand back. This is the animation layer other ' +
+        'apps most often want: it is what makes an avatar react to something ' +
+        'without changing what it IS.',
+      args: { id: { type: 'enum', values: ACT_IDS } },
+      returns: { ok: 'boolean' },
+    },
+    { type: 'act.stop', doc: 'Drop the running eye act and return to the expression underneath.' },
+    {
+      type: 'kind',
+      doc:
+        'Explicitly choose what this avatar IS. An agent gets the taller drawn ' +
+        'eyes, the full head rotation, a generated skull and the tool-call ' +
+        'theatrics; a person gets none of them and keeps natural proportions. ' +
+        'The same thing can be set through `identity`, but a caller that only ' +
+        'wants to switch between a person and an AI should not have to send an ' +
+        'identity change to do it.',
+      args: { kind: { type: 'enum', values: ['agent', 'customer'] } },
+    },
     { type: 'theme', doc: 'Light or dark.', args: { theme: { type: 'enum', values: ['light', 'dark'] } } },
   ],
   notes: {
     toolStates: TOOL_STATES,
     expressions: EXPRESSION_NAMES,
+    /** Every eye act, so an app can discover them rather than hardcode a list. */
+    acts: ACT_IDS,
+    /** Which act a tool call plays when none is named. */
+    toolActs: TOOL_ACTS,
   },
 }
 
@@ -145,7 +181,10 @@ export function handle(avatar, msg) {
 
     case 'tool.start':
       if (!msg.name) return fail(avatar, 'tool.start needs a `name`')
-      avatar.runTool({ name: msg.name, args: msg.args, result: msg.result }, msg.ms)
+      // `act` rides along: it is how a caller names the eye act itself, or
+      // passes false to leave the eyes out of it. Dropping it here meant the
+      // override in the manifest silently did nothing.
+      avatar.runTool({ name: msg.name, args: msg.args, result: msg.result, act: msg.act }, msg.ms)
       return { ok: true }
 
     case 'tool.end':
@@ -209,6 +248,22 @@ export function handle(avatar, msg) {
       for (const key of ['seed', 'kind', 'color', 'gender', 'age']) {
         if (msg[key] !== undefined && msg[key] !== null) avatar.setAttribute(key, String(msg[key]))
       }
+      return { ok: true }
+    }
+
+    case 'act.play': {
+      if (!ACT_IDS.includes(msg.id)) return fail(avatar, `unknown eye act "${msg.id}"`)
+      return { ok: avatar.playAct(msg.id) }
+    }
+
+    case 'act.stop':
+      avatar.stopAct()
+      return { ok: true }
+
+    case 'kind': {
+      const kind = msg.kind === 'customer' ? 'customer' : msg.kind === 'agent' ? 'agent' : null
+      if (!kind) return fail(avatar, `kind must be "agent" or "customer", got "${msg.kind}"`)
+      avatar.setAttribute('kind', kind)
       return { ok: true }
     }
 

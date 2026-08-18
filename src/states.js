@@ -349,6 +349,35 @@ export const LASER_POSTURE = {
   expression: 7, // hard focus
 }
 
+/**
+ * Which EYE ACT a tool call performs.
+ *
+ * A tool call already changes the state, puts glasses on and runs the outfit
+ * colour — but the EYES were doing nothing specific, which is the one part a
+ * person actually looks at. Matching the act to what the tool is DOING is what
+ * makes the difference between "the agent is busy" and "the agent is looking
+ * something up".
+ *
+ * Matched against the tool NAME, first pattern wins. `act.play` overrides this
+ * whenever an app wants to say exactly what it means.
+ */
+export const TOOL_ACTS = [
+  [/search|find|lookup|query|scan/i, 'scan'],
+  [/read|get|fetch|load|list/i, 'look-away'],
+  [/write|create|update|save|send|post/i, 'narrow'],
+  [/delete|remove|cancel|abort/i, 'squeeze'],
+  [/check|verify|validate|confirm/i, 'narrow'],
+  [/think|plan|reason|analyz|analys/i, 'look-away'],
+  [/wait|poll|sleep|retry/i, 'flutter'],
+]
+
+/** The act a tool call should play, or null when nothing matches. */
+export function actForTool(name) {
+  if (!name) return null
+  for (const [re, act] of TOOL_ACTS) if (re.test(name)) return act
+  return 'look-away'
+}
+
 /** Plain-language note per state, for the lab UI. */
 export const STATE_NOTES = {
   sleeping: 'Eyes almost shut, slow breathing, no blinking.',

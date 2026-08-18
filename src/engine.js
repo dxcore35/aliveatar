@@ -25,7 +25,7 @@
 import { RINGS, MOUTH_RINGS, EYE_POSE } from './expressions.js'
 import {
   POOLS, BLINK, EXPR_CADENCE, MOTION, TALK, KIND_PROFILE, TOOL_STATES,
-  SKIN_MOOD, WARDROBE_STEP_MS, LASER_POSTURE,
+  SKIN_MOOD, WARDROBE_STEP_MS, LASER_POSTURE, actForTool,
 } from './states.js'
 import { ageProfile, readableSkin } from './humation.js'
 import { Gaze } from './motion/gaze.js'
@@ -266,6 +266,16 @@ export class FaceEngine {
     if (!this.profile.fx || !call) return
     this.tool = { ...call, t: 0, ms, done: false }
     if (!TOOL_STATES.includes(this.state)) this.setState('thinking')
+    // The EYES perform the call too.
+    //
+    // A tool call already changed the state, put the glasses on and ran the
+    // outfit colour — and the eyes went on doing whatever they were doing,
+    // which is the one part of the face anybody actually watches. Matching an
+    // act to what the tool IS turns "the agent is busy" into "the agent is
+    // looking something up". A caller that knows better can name its own with
+    // `act`, or pass `act: false` to leave the eyes alone.
+    const act = call.act === undefined ? actForTool(call.name) : call.act
+    if (act) this.playAct(act)
     this.onTool?.(this.tool)
   }
 
