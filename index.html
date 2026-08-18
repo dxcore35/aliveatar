@@ -91,7 +91,7 @@
       }
       .lede { margin: 0; color: var(--muted); font-size: 1.05rem; }
       .count {
-        margin: 0; color: var(--muted);
+        margin: 0 0 -6px; color: var(--muted); letter-spacing: 0.06em;
         font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.74rem;
       }
       .count b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -113,6 +113,7 @@
       /* ── what it plugs into: one word each, nothing more ─────────── */
       .badges {
         list-style: none; margin: 0; padding: 0;
+        align-items: center;
         display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
         font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
         color: var(--muted);
@@ -123,10 +124,14 @@
         backdrop-filter: blur(6px);
       }
 
-      .colophon {
-        position: fixed; inset: auto 0 0; z-index: 5; margin: 0;
-        padding: 14px; text-align: center;
-        color: var(--muted); font-size: 0.74rem;
+      footer {
+        position: fixed; inset: auto 0 0; z-index: 5;
+        display: flex; align-items: center; justify-content: center;
+        gap: 8px 14px; flex-wrap: wrap; padding: 14px 22px;
+      }
+      .lic {
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 0.72rem; color: var(--muted);
       }
 
       @media (max-width: 620px) {
@@ -150,10 +155,10 @@
       <div class="stage" id="stage" aria-hidden="true"></div>
 
       <div class="stream-copy">
+        <p class="count"><b id="stream-count">0</b> made since you arrived</p>
+
         <h1>Avatars that are alive</h1>
         <p class="lede">It never runs out of people.</p>
-
-        <p class="count"><b id="stream-count">0</b> made since you arrived</p>
 
         <button class="cmd" id="cmd" aria-label="Copy: bun add github:dxcore35/avatar-motion">
           <span class="sigil" aria-hidden="true">$</span>
@@ -165,19 +170,20 @@
             </svg>
           </span>
         </button>
-
-        <ul class="badges">
-          <li>MCP</li>
-          <li>CLI</li>
-          <li>Web Component</li>
-          <li>React</li>
-          <li>Vue</li>
-          <li>Zero deps</li>
-        </ul>
       </div>
     </main>
 
-    <p class="colophon">MIT &middot; drawn in your browser</p>
+    <footer>
+      <ul class="badges">
+        <li>MCP</li>
+        <li>CLI</li>
+        <li>Web Component</li>
+        <li>React</li>
+        <li>Vue</li>
+        <li>Zero deps</li>
+      </ul>
+      <span class="lic">MIT</span>
+    </footer>
 
     <script type="module" src="./src/site.js"></script>
   </body>

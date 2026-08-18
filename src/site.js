@@ -40,9 +40,10 @@ cmd.addEventListener('click', async () => {
 const stage = $('stage')
 const stream = $('stream')
 const TILE = window.innerWidth < 620 ? 84 : 112
-const DENSITY = 26
+const DENSITY = 40
 const BLANK = 0.5 // share of the short side kept empty in the middle
-const TRAVEL = [13000, 19000] // ms, centre to edge — slow enough to read a face
+const TRAVEL = [8000, 12500] // ms, centre to edge — a face is readable the whole way
+const YOUNG = 0.3 // a tile is "still in the crowd" for this share of its flight
 const GROW = [0.45, 2.15] // scale at the ring → scale at the edge; they come at you
 
 // A share of the crowd is mid tool call on the way out — glasses on, a bubble
@@ -73,12 +74,48 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)]
 const counter = $('stream-count')
 let born = 0
 
+/** How far through its flight a tile is, 0 at the ring and 1 off the edge. */
+function progress(tile) {
+  if (!tile.life) return 1
+  return (performance.now() - tile.born) / tile.life
+}
+
+/**
+ * An angle to spawn at that does not land on somebody who just spawned.
+ *
+ * Only the young ones matter. Two faces released at the same angle a moment
+ * apart travel the same line and stay stacked the whole way out, which is the
+ * collision that reads as a bug. Once they are out and grown, touching is fine
+ * — a crowd overlaps, and forcing gaps out there would make the ring visible.
+ */
+function freeAngle(self, hole) {
+  const crowd = tiles.filter((t) => t !== self && t.life && progress(t) < YOUNG)
+  if (!crowd.length) return Math.random() * Math.PI * 2
+  // The angle one tile covers where it spawns, plus a little air.
+  const need = 2 * Math.atan((TILE * GROW[0] * 0.62) / hole)
+  let best = 0
+  let bestGap = -1
+  for (let i = 0; i < 24; i++) {
+    const candidate = Math.random() * Math.PI * 2
+    let gap = Math.PI
+    for (const other of crowd) {
+      let d = Math.abs(candidate - other.angle) % (Math.PI * 2)
+      if (d > Math.PI) d = Math.PI * 2 - d
+      if (d < gap) gap = d
+    }
+    if (gap >= need) return candidate
+    if (gap > bestGap) { bestGap = gap; best = candidate }
+  }
+  // Everything is busy — take the roomiest spot rather than stack on someone.
+  return best
+}
+
 function launch(tile) {
   const box = stream.getBoundingClientRect()
   if (!box.width || !box.height) return
 
-  const angle = Math.random() * Math.PI * 2
   const hole = (Math.min(box.width, box.height) / 2) * BLANK
+  const angle = freeAngle(tile, hole)
   // Far enough that the tile is fully past the corner before it is recycled.
   const far = Math.hypot(box.width, box.height) / 2 + TILE * GROW[1]
 
@@ -116,6 +153,9 @@ function launch(tile) {
   )
   anim.onfinish = () => launch(tile)
   tile.anim = anim
+  tile.angle = angle
+  tile.born = performance.now()
+  tile.life = anim.effect.getTiming().duration
 
   // Only agents run tools — a person on the phone is not calling an API — and
   // the call starts once the face is fully in, so nobody sees it arrive busy.
