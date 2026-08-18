@@ -121,6 +121,61 @@ avatar.send({ type: 'manifest' })   // every command, discoverable at runtime
 than throwing — a control channel that can crash the UI is not a control
 channel.
 
+## Letting an AI agent drive it — MCP
+
+The control API assumes an app that already knows what it wants. An AI agent
+does not: it has to DISCOVER what is possible and then call it. That is exactly
+what MCP is for, and `MANIFEST` was already the right shape — every command
+carries a doc string and typed arguments, so the MCP tool list is **generated
+from it** rather than written twice, and cannot drift from the implementation.
+
+An avatar lives in a browser; MCP servers and CLIs are processes. One bridge
+carries commands across that gap, and every front door speaks to it:
+
+```
+  MCP server ─┐
+  CLI        ─┼─► bridge (ws://localhost:4332) ─► the page ─► avatar.send()
+  your code  ─┘
+```
+
+Three terminals:
+
+```bash
+bun run bridge                       # the wire, on :4332
+bun run dev                          # the lab, on :4330
+open http://localhost:4330/?bridge   # ?bridge makes the page join
+```
+
+Then, from a shell:
+
+```bash
+bun bin/avatar.js avatars                       # who is connected
+bun bin/avatar.js state listening
+bun bin/avatar.js act.play id=wink
+bun bin/avatar.js tool.start name=kb.search     # scans, by itself
+bun bin/avatar.js identity seed=agent:reception-01 color=#16A34A age=34
+```
+
+Or register it with any MCP client:
+
+```bash
+claude mcp add avatar -- bun /absolute/path/to/avatar-motion/mcp/server.js
+```
+
+The agent then sees 18 tools — `avatar_state`, `avatar_act_play`,
+`avatar_tool_start`, `avatar_identity`, `avatar_list` and the rest — each with
+its enum values filled in, so it can pick a real eye act rather than guess a
+string. `avatar_list` reports which avatars are connected, which is the first
+thing an agent should call.
+
+The server speaks JSON-RPC over stdio and is hand-rolled rather than pulled from
+the SDK: the surface an agent needs is four methods, and this project has no
+dependencies at all — worth keeping for something you clone and run.
+
+**`?bridge` is opt-in.** A page that has not asked for it opens no socket. An
+avatar that silently accepts commands from a local port is a surprise nobody
+wants in a product build.
+
 ## Age
 
 Age is real data a CRM usually has, and it is a stronger signal for how someone

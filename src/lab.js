@@ -592,3 +592,18 @@ for (const box of document.querySelectorAll('[data-crowd]')) {
 // ── Go ──────────────────────────────────────────────────────────────────────
 rebuild()
 selectState('idle')
+
+// ── Bridge (opt-in) ─────────────────────────────────────────────────────────
+// Add ?bridge to the URL and this page joins the local bridge, so the CLI and
+// the MCP server can drive the avatar on screen. Opt-in on purpose: a page that
+// silently accepts commands from a local port is a surprise nobody wants.
+if (new URLSearchParams(location.search).has('bridge')) {
+  import('./bridge-client.js').then(({ connectBridge }) => {
+    // A getter, not the element: the lab rebuilds its avatar on every identity
+    // change, so the connection has to follow the current one.
+    connectBridge(() => document.querySelector('#box-live avatar-motion'), { name: 'stage' })
+    connectBridge(() => document.querySelector('#box-light avatar-motion'), { name: 'light' })
+    const note = $('demo-note')
+    if (note) note.textContent = 'bridged — try: bun bin/avatar.js state listening'
+  })
+}

@@ -6,6 +6,13 @@
   "description": "Humation modular person avatars + the GrokBot face-motion engine, merged.",
   "scripts": {
     "bake": "bun tools/bake-humation.js",
-    "dev": "bun tools/serve.js"
+    "dev": "bun tools/serve.js",
+    "bridge": "bun tools/bridge.js",
+    "mcp": "bun mcp/server.js",
+    "avatar": "bun bin/avatar.js",
+    "sync": "bun tools/sync-to-platform.js"
+  },
+  "bin": {
+    "avatar": "./bin/avatar.js"
   }
 }
