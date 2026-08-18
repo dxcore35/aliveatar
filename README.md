@@ -191,6 +191,13 @@ any avatar can decline it with `no-aura`.
 | `mcp/server.js` | the MCP server |
 | `tools/bridge.js` | the wire between a process and a page |
 | `tools/shot.sh` | rebuilds the images above |
+| `docs/ENGINE.md` | how the engine works, in full |
+
+## How it works
+
+The engineering write-up — the seam between the two systems, what makes the
+motion read as real, what the look pass costs, and how an AI is deliberately
+not animated like a person — is in [`docs/ENGINE.md`](docs/ENGINE.md).
 
 ## Licence
 

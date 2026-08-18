@@ -8,7 +8,7 @@ import { SKULL_NAMES, SKULL_SHAPES } from './render/skull.js'
 import { POOLS, BLINK, EXPR_CADENCE, MOTION, STATE_GROUPS, STATE_NOTES, TOOL_SCRIPTS } from './states.js'
 import { STATES } from './states.js'
 import { activeCount, totalCount } from './core/ticker.js'
-import { iconSvg, ICON_NAMES } from './render/icons.js'
+import { iconSvg } from './render/icons.js'
 import { emblemFor } from './render/emblem.js'
 import { randomVariation, applyVariation, SPACE } from './variation.js'
 
@@ -107,7 +107,6 @@ function rebuild() {
       : built.skull === 'round'
         ? 'Round — the drawn head, unchanged.'
         : `${sk?.label || built.skull} — ${sk?.note || ''} The hair is untouched; it is the face inside it that changes.`
-  showGeometry(built.face)
   $('kind-note').textContent =
     cfg.kind === 'customer'
       ? 'A person: the eyes stay stuck on the face and only slide a little. No spinning, no tool bubbles, natural eye size.'
@@ -119,17 +118,6 @@ function rebuild() {
     `±${built.face.gazeYMax.toFixed(2)} vertically — kept as the gist's ratio of eye separation (${built.face.separation.toFixed(2)}).`
   const frontDeg = (-(built.face.slots[0].baseLongitude + built.face.slots[1].baseLongitude) / 2 * 180) / Math.PI
   $('front-angle').textContent = `${frontDeg > 0 ? '+' : ''}${frontDeg.toFixed(0)}°`
-}
-
-function showGeometry(face) {
-  $('geom-facts').innerHTML = [
-    [`cx ${face.cx.toFixed(2)} · cy ${face.cy.toFixed(2)} · r ${face.radius.toFixed(2)}`, 'head sphere, in the 88-unit avatar box'],
-    [face.slots.map((s) => `${((s.baseLongitude * 180) / Math.PI).toFixed(1)}°`).join('  /  '), 'resting longitude of each eye'],
-    [`${face.separation.toFixed(2)} units`, 'eye separation'],
-    [`${(face.slots[0].halfW * 2).toFixed(2)} × ${(face.slots[0].halfH * 2).toFixed(2)}`, 'size of one baked eye box'],
-  ]
-    .map(([code, label]) => `<div class="fact"><code>${code}</code>${label}</div>`)
-    .join('')
 }
 
 // ── Controls ────────────────────────────────────────────────────────────────
@@ -445,11 +433,19 @@ $('expr-grid').addEventListener('click', (ev) => {
 })
 
 // ── State picker ────────────────────────────────────────────────────────────
+// Each chip carries the symbol that state puts over the head. It used to be a
+// separate reference sheet in its own tab, which meant reading the answer in
+// one place and pressing the button in another.
 $('state-groups').innerHTML = STATE_GROUPS.map(
   (g) => `<div>
       <div class="group-label">${g.label}</div>
       <div class="chips">${g.states
-        .map((s) => `<button data-state="${s}" aria-pressed="${s === 'idle'}">${s}</button>`)
+        .map((s) => {
+          const [icon] = emblemFor(s)
+          return `<button data-state="${s}" aria-pressed="${s === 'idle'}">${
+            icon ? iconSvg(icon, { size: 13 }) : ''
+          }${s}</button>`
+        })
         .join('')}</div>
     </div>`,
 ).join('')
@@ -512,50 +508,6 @@ document.querySelector('.tabs').addEventListener('click', (ev) => {
     p.hidden = p.id !== `tab-${tab.dataset.tab}`
   })
 })
-
-// ── Faces ───────────────────────────────────────────────────────────────────
-// One frozen avatar per expression, cropped to the head. Built once and left
-// alone — these are reference plates, not a second animation to pay for.
-$('faces').innerHTML = EXPRESSION_NAMES.map(
-  (name, i) =>
-    `<figure class="figure"><div class="box clickable" data-face="${i}"></div><figcaption>${String(i).padStart(2, '0')} ${name}</figcaption></figure>`,
-).join('')
-for (const box of document.querySelectorAll('[data-face]')) {
-  const i = Number(box.dataset.face)
-  const el = document.createElement('avatar-motion')
-  el.className = 'headcrop'
-  el.setAttribute('seed', 'agent:reception-01')
-  el.setAttribute('color', '#3B82F6')
-  el.setAttribute('no-mount', '')
-  box.appendChild(el)
-  requestAnimationFrame(() => {
-    const e = el.engine
-    if (!e) return
-    e.autoMotion = false
-    e.autoExpression = false
-    e.autoBlink = false
-    e.setExpression(i)
-    e.morph = 1
-    e.velocity = 0
-    e.manualTurn = 0
-  })
-  box.addEventListener('click', () => {
-    $('auto-expr').checked = false
-    applyControls()
-    both((a) => a.setExpression(i))
-  })
-}
-
-// ── Emblem sheets ───────────────────────────────────────────────────────────
-$('iconsheet').innerHTML = ICON_NAMES.map(
-  (name) => `<div class="iconcell">${iconSvg(name, { size: 30 })}<span>${name}</span></div>`,
-).join('')
-
-$('emblemsheet').innerHTML = STATES.map((state) => {
-  const [icon] = emblemFor(state)
-  if (!icon) return ''
-  return `<div class="iconcell">${iconSvg(icon, { size: 26 })}<span>${state}</span></div>`
-}).join('')
 
 // ── Crowd — infinite ────────────────────────────────────────────────────────
 //

@@ -103,9 +103,11 @@
       /* Same pill as the words in the landing footer. */
       .chips { display: flex; flex-wrap: wrap; gap: 6px; }
       .chips button {
+        display: inline-flex; align-items: center; gap: 6px;
         border-radius: 999px; padding: 5px 11px; font-size: 0.74rem;
         font-family: var(--mono); background: transparent; color: var(--muted);
       }
+      .chips button svg { flex: none; opacity: 0.75 }
       .chips button[aria-pressed='true'] { border-color: var(--primary); color: var(--primary); background: transparent; }
       .group-label { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 
@@ -161,9 +163,10 @@
           <h1>The lab</h1>
         </div>
         <p>
-          Every knob the engine has. Drive a state, retune the spring, browse all
-          41 eye types, watch a crowd. None of it is needed to use the avatar &mdash;
-          this is the workbench it was built on.
+          Every knob the engine has: drive a state, retune the spring, watch a
+          crowd. None of it is needed to use the avatar &mdash; this is the
+          workbench it was built on. How it works is written up in
+          <a href="./docs/ENGINE.md">ENGINE.md</a>.
         </p>
       </header>
 
@@ -259,10 +262,7 @@
           <div class="tabs" role="tablist">
             <button class="tab" role="tab" aria-selected="true" data-tab="drive">Drive</button>
             <button class="tab" role="tab" aria-selected="false" data-tab="states">States</button>
-            <button class="tab" role="tab" aria-selected="false" data-tab="faces">Faces</button>
-            <button class="tab" role="tab" aria-selected="false" data-tab="emblems">Emblems</button>
             <button class="tab" role="tab" aria-selected="false" data-tab="crowd">Crowd</button>
-            <button class="tab" role="tab" aria-selected="false" data-tab="how">How it merges</button>
           </div>
 
           <section class="tab-panel" id="tab-drive" role="tabpanel">
@@ -275,6 +275,10 @@
                 <b>Test eyes</b> above to watch all forty-one go past in order.
               </p>
               <div class="grid5" id="expr-grid"></div>
+              <label class="control">
+                <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
+                <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
+              </label>
             </section>
 
             <section class="panel">
@@ -295,15 +299,7 @@
             </section>
 
             <section class="panel">
-              <h3>Spring</h3>
-              <label class="control">
-                <span class="control-head"><span>Spring stiffness</span><output id="o-spring">7.0</output></span>
-                <input type="range" id="spring" min="4" max="12" step="0.5" value="7" />
-              </label>
-            </section>
-
-            <section class="panel">
-              <h3>Gaze</h3>
+              <h3>Aim &mdash; eyes, head and depth</h3>
               <label class="control">
                 <span class="control-head"><span>Horizontal</span><output id="o-gx">0.00</output></span>
                 <input type="range" id="gx" min="-1" max="1" step="0.01" value="0" />
@@ -317,10 +313,7 @@
                 <input type="checkbox" id="mouse" />
               </div>
               <p class="note" id="gaze-note"></p>
-            </section>
-
-            <section class="panel">
-              <h3>Head turn &amp; depth</h3>
+            
               <label class="control">
                 <span class="control-head"><span>Turn</span><output id="o-turn">0°</output></span>
                 <input type="range" id="turn" min="-110" max="110" step="1" value="0" />
@@ -351,7 +344,6 @@
                 <span class="control-head"><span>Emblem over the head</span></span>
                 <select id="emblem">
                   <option value="icon">drawn icon set</option>
-                  <option value="auto">emoji</option>
                   <option value="item">Humation hat / pet</option>
                   <option value="off">nothing</option>
                 </select>
@@ -388,40 +380,6 @@
             </section>
           </section>
 
-          <section class="tab-panel" id="tab-faces" role="tabpanel" hidden>
-            <section class="panel">
-              <h3>All 41 eye types, held still</h3>
-              <p class="note">
-                Same person, same seed, cropped to the head. Nothing is drawn by
-                hand. Click one to send it to the stage. The first twenty-five
-                are the generated set — eight numbers per eye, all the mood in
-                the eye shape. The last sixteen (marked&nbsp;✦) are the bloub
-                set, where the mood is also carried by the head: how it is
-                turned, and how far apart the eyes sit on it.
-              </p>
-              <div class="gallery" id="faces"></div>
-            </section>
-          </section>
-
-          <section class="tab-panel" id="tab-emblems" role="tabpanel" hidden>
-            <section class="panel">
-              <h3>The drawn icon set</h3>
-              <p class="note">
-                Drawn here rather than vendored. A licence survey turned up two
-                clean options (Phosphor and Fluent Emoji, both MIT) and a longer
-                list to avoid — but neither would match the avatar's line. These
-                are composed from shared primitives, so one stroke width governs
-                the whole set, and the project carries no asset licence at all.
-              </p>
-              <div class="iconsheet" id="iconsheet"></div>
-            </section>
-            <section class="panel">
-              <h3>What each state shows</h3>
-              <p class="note">Icons and emoji carry the same meanings and the same motion, so switching between them changes nothing but the artwork.</p>
-              <div class="iconsheet" id="emblemsheet"></div>
-            </section>
-          </section>
-
           <section class="tab-panel" id="tab-crowd" role="tabpanel" hidden>
             <section class="panel">
               <h3>Different people, different states, one engine</h3>
@@ -440,106 +398,6 @@
             </section>
           </section>
 
-          <section class="tab-panel" id="tab-how" role="tabpanel" hidden>
-            <section class="panel">
-              <h3>What each side brings</h3>
-              <div class="facts">
-                <div class="fact"><code>Humation → identity</code>Modular parts (head, body, bottom, item, glasses) picked from a seed, recoloured per entity. Deterministic: the same id is always the same person.</div>
-                <div class="fact"><code>GrokBot → life</code>Spring morphs between eye shapes, blink curve, gaze clamp, spherical eye projection, and a state machine of expression pools and cadences.</div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>The seam</h3>
-              <p class="note">
-                Humation's eyes are two little paths baked into the head drawing.
-                Every one of the 24 head parts draws them at the <em>same</em> two
-                boxes, which is what makes the swap safe: cut those two paths, then
-                measure them to recover the sphere the engine needs.
-              </p>
-              <div class="pipeline">
-                <div class="pipe"><span>01</span><strong>Compose</strong><p class="note">seed → parts + palette</p></div>
-                <div class="pipe"><span>02</span><strong>Cut</strong><p class="note">remove 2 baked eyes</p></div>
-                <div class="pipe"><span>03</span><strong>Measure</strong><p class="note">skin box → sphere</p></div>
-                <div class="pipe"><span>04</span><strong>Project</strong><p class="note">rings onto sphere</p></div>
-                <div class="pipe"><span>05</span><strong>Draw</strong><p class="note">d + transform per frame</p></div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>Measured on this avatar</h3>
-              <div class="facts" id="geom-facts"></div>
-            </section>
-
-            <section class="panel">
-              <h3>Ported unchanged from the gist</h3>
-              <div class="facts">
-                <div class="fact"><code>blink(t) = close 42 % → open 58 %, floor 0.04</code>320 ms, closing faster than opening.</div>
-                <div class="fact"><code>v += (−2ζωv − ω²(x − target)) dt</code>Expression morph is a damped spring, not a linear tween.</div>
-                <div class="fact"><code>longitude = asin(offset / radius) + turn</code>Each eye keeps its own resting angle on the head.</div>
-                <div class="fact"><code>scaleX = cos(longitude) / cos(longitude₀)</code>Eyes narrow as they rotate away, and hide past the horizon.</div>
-                <div class="fact"><code>pointer clamped to ±0.6</code>The gaze can never reach the edge of the face.</div>
-                <div class="fact"><code>POOLS · BLINK · EXPR_CADENCE</code>All 39 state rows copied as-is.</div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>What makes it read as real</h3>
-              <p class="note">
-                Almost none of this is expensive. The ordering below is by how
-                much each one changes the impression, not by how much it costs.
-              </p>
-              <div class="facts">
-                <div class="fact"><code>saccades, not glides</code>Real eyes are still, then JUMP, then still. A saccade takes 30–80 ms and its duration scales with distance. Smoothly gliding eyes are the single most uncanny thing an avatar can do — this is the biggest change of the lot.</div>
-                <div class="fact"><code>microsaccades and drift</code>During a fixation the eye is never actually still. A ~0.02 tremor every few hundred milliseconds, plus a slow drift.</div>
-                <div class="fact"><code>the head lags the eyes</code>A look starts with the eyes; the head follows on a spring and the eyes then roll back towards centre. That lag is what makes a glance read as intentional.</div>
-                <div class="fact"><code>blinks that are not a metronome</code>Intervals are clustered, not uniform. One in seven is a double, one in six is a half-lid, and a big saccade drags a blink along with it.</div>
-                <div class="fact"><code>breath is not a sine</code>Quick inhale, catch at the top, slower exhale, pause at the bottom — and the weight shift runs on a completely different clock so the two never line up into one loop.</div>
-                <div class="fact"><code>lids follow the gaze</code>Looking down lowers the upper lid. Without it, a downward glance reads as a stare.</div>
-                <div class="fact"><code>squash and stretch</code>A hop stretches on the way up and squashes on landing, and the contact shadow tightens as the figure leaves the ground.</div>
-                <div class="fact"><code>every face is its own</code>Eye spacing, size, aspect, corner tilt, mouth height, lid weight, blink rate and fidget level are all drawn from the seed. Two avatars sharing a hairstyle no longer share a face.</div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>The look pass, and what it costs</h3>
-              <div class="facts">
-                <div class="fact"><code>one light, whole figure</code>The five Humation colour variables are repainted as gradients in USER space, so head, body and legs are lit by one light instead of each shape shading itself.</div>
-                <div class="fact"><code>texture is an image, not a filter</code>Grain, twill and hair strands are generated once into a canvas at load and tiled. An SVG filter would re-run every time the face moved; a tiled image costs a composite and nothing else.</div>
-                <div class="fact"><code>shading is duplicated paths</code>Occlusion under the hairline and a rim on the far edge are the same path drawn again with a translucent gradient. No offscreen buffer.</div>
-                <div class="fact"><code>a contact shadow</code>One soft ellipse under the feet. Nothing in the source art sits on anything, which is most of why a flat avatar reads as a sticker.</div>
-                <div class="fact"><code>one shader, hard limits</code>The aura is real WebGL, capped at three live contexts for the whole page, 144×144 regardless of display size, 30 fps, skipped when flat, and released the moment the avatar scrolls off screen.</div>
-                <div class="fact"><code>one loop for everybody</code>Fifty avatars share ONE requestAnimationFrame. Physics runs at a fixed 120 Hz so springs settle identically on any display, off-screen avatars stop, a hidden tab stops, and reduced-motion is obeyed and watched.</div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>An AI does not move like a person</h3>
-              <p class="note">
-                Both kinds run the same engine; the profile decides how far it is
-                allowed to go. You should be able to tell which one you are
-                looking at without reading a label.
-              </p>
-              <div class="facts">
-                <div class="fact"><code>customer · eyes stay on the face</code>The head turn only slides the eyes a little, never rotates them around the skull, and never narrows them. Capped at ±14°. Natural eye size, no theatrics.</div>
-                <div class="fact"><code>agent · the full sphere</code>Eyes travel around the head and disappear past the horizon. Taller, more drawn eyes (1.22 × 1.62). Sway reaches further. Spin is allowed.</div>
-                <div class="fact"><code>agent · tool calls</code>Running a tool puts glasses on the face, floats a bubble with the call and its result, and runs the outfit colour around the hue wheel until the call returns.</div>
-                <div class="fact"><code>the mouth</code>Humation draws none, so it is generated: four numbers per expression, plus a talk oscillation for the states where the avatar is actually speaking.</div>
-                <div class="fact"><code>the companion animal</code>The cat on the head blinks on its own clock — never in step with its owner, because two faces blinking together look mechanical — and naps when the person is asleep.</div>
-                <div class="fact"><code>the arrival</code>A new avatar springs up from small and low with its eyes shut, then opens them. Without it the first second reads as a static image.</div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h3>Changed on purpose</h3>
-              <div class="facts">
-                <div class="fact"><code>Expressions are generated, not stored</code>Eight numbers per eye instead of 96 raw coordinates — so the same face fits a 4.5-unit Humation head as well as a 49-unit blob, and a new expression is one readable line.</div>
-                <div class="fact"><code>18 blob shapes → Humation part slots</code>The gist's silhouette axis becomes the modular person: 24 heads × 8 bodies × 8 bottoms × 43 items × 3 glasses.</div>
-                <div class="fact"><code>MOTION table added</code>A person needs breathing, sway, nodding and self-directed gaze; a floating blob did not.</div>
-                <div class="fact"><code>Head counter-shift</code>The head art is still, so a turn nudges the whole head group — otherwise the eyes look like they are sliding across a frozen face.</div>
-              </div>
-            </section>
-          </section>
         </main>
       </div>
     </div>
