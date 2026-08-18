@@ -103,6 +103,12 @@
       }
       button { cursor: pointer; }
       button:hover { border-color: var(--muted); color: var(--ink); }
+      .actions button[aria-pressed='true'] {
+        background: color-mix(in oklab, var(--accent) 20%, transparent);
+        border-color: color-mix(in oklab, var(--accent-ink) 60%, transparent);
+        color: var(--accent-ink);
+        box-shadow: 0 0 16px -2px color-mix(in oklab, var(--accent) 34%, transparent);
+      }
       input[type='color'] { border: 1px solid var(--line); border-radius: 8px; background: var(--raised); cursor: pointer; }
 
       /* Every pill row: a label, then the pills, flowing until the width
@@ -110,16 +116,33 @@
       .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
       .chips button, .pill {
         display: inline-flex; align-items: center; gap: 5px;
-        border: 1px solid var(--line); border-radius: 999px;
+        border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+        border-radius: 999px;
         padding: 4px 10px; font-family: var(--mono); font-size: 0.66rem;
         color: var(--muted); background: transparent; cursor: pointer;
+        transition: color 0.14s, border-color 0.14s, background 0.14s, box-shadow 0.18s;
       }
-      .chips button svg { flex: none; opacity: 0.7 }
-      /* The one highlight in the lab, in the avatar's own colour — and the ink
-         on it is chosen for contrast, never inherited. */
+      .chips button:hover, .pill:hover {
+        color: var(--ink); border-color: color-mix(in oklab, var(--muted) 45%, transparent);
+      }
+      .chips button svg { flex: none; opacity: 0.65; color: inherit; }
+
+      /* Selected is a tinted capsule, not a solid block: a wash of the avatar's
+         colour, a brighter ring of it, the label in it, and a soft bloom
+         around it. The label is always the bright hue, so it can never come
+         out as grey-on-colour. */
       .chips button[aria-pressed='true'],
       .pill:has(input:checked) {
-        background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+        background: color-mix(in oklab, var(--accent) 20%, transparent);
+        border-color: color-mix(in oklab, var(--accent-ink) 60%, transparent);
+        color: var(--accent-ink);
+        box-shadow: 0 0 16px -2px color-mix(in oklab, var(--accent) 34%, transparent);
+      }
+      .chips button[aria-pressed='true']:hover,
+      .pill:has(input:checked):hover {
+        background: color-mix(in oklab, var(--accent) 28%, transparent);
+        border-color: var(--accent-ink);
+        color: var(--accent-ink);
       }
       .chips button[aria-pressed='true'] svg { opacity: 1 }
       .pill input { position: absolute; opacity: 0; pointer-events: none; }
@@ -144,10 +167,11 @@
         letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
       }
       #tab-drive { display: grid; gap: 14px; }
+      #tab-drive[hidden] { display: none; }
       #tab-drive > .panel + .panel { border-top: 1px solid var(--line); padding-top: 12px; }
       /* The gallery is a drawer under the controls, opened from the stage. */
       .gallery-panel[hidden] { display: none; }
-      .gallery-panel { border-top: 1px solid var(--line); padding-top: 12px; }
+      .gallery-panel { padding-top: 12px; }
 
       /* ── crowd ──────────────────────────────────────────────────────── */
       .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 4px; align-items: start; }

@@ -593,7 +593,10 @@ setInterval(() => {
 // not a crowd, it is a screensaver.
 
 const gallery = $('gallery')
-const PER_PAGE = 50
+// Enough to fill the space the drawer takes over. Fifty left three quarters of
+// the screen empty, which reads as "that is all of them" — the opposite of the
+// point.
+const PER_PAGE = 120
 /** page number → the fifty variations that page holds */
 const pages = new Map()
 let page = 1
@@ -678,7 +681,11 @@ showPage(1)
 // open, pick from, and close — which is what it is for.
 const drawer = $('gallery-panel')
 function setGallery(open) {
+  // The gallery takes the whole lower half over. Leaving the dials visible
+  // under a wall of faces makes you scroll past the faces to reach them, which
+  // is worse than either thing on its own.
   drawer.hidden = !open
+  $('tab-drive').hidden = open
   $('btn-gallery').setAttribute('aria-pressed', String(open))
   $('btn-gallery').textContent = open ? 'Close gallery' : 'Gallery'
   if (open) drawer.scrollIntoView({ block: 'start', behavior: 'smooth' })
