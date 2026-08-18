@@ -79,11 +79,15 @@
       .stream-copy {
         position: relative; z-index: 2; text-align: center;
         display: grid; gap: 16px; justify-items: center;
-        padding: 22px 26px; max-width: 32em;
+        padding: 22px 26px; max-width: min(92vw, 34em);
       }
       h1 {
-        margin: 0; font-size: clamp(2.4rem, 6.4vw, 4.2rem); font-weight: 600;
-        letter-spacing: -0.05em; line-height: 0.94;
+        margin: 0; font-weight: 600; letter-spacing: -0.05em; line-height: 1;
+        /* One line, always. The vw term is what keeps it on one line on a
+           narrow window; the ch cap stops it becoming a billboard on a wide
+           one. */
+        font-size: min(4.4rem, 7.2vw);
+        white-space: nowrap;
       }
       .lede { margin: 0; color: var(--muted); font-size: 1.05rem; }
       .count {
@@ -149,9 +153,7 @@
         <h1>Avatars that are alive</h1>
         <p class="lede">It never runs out of people.</p>
 
-        <p class="count">
-          A new one every moment &mdash; <b id="stream-count">0</b> made since you arrived
-        </p>
+        <p class="count"><b id="stream-count">0</b> made since you arrived</p>
 
         <button class="cmd" id="cmd" aria-label="Copy: bun add github:dxcore35/avatar-motion">
           <span class="sigil" aria-hidden="true">$</span>
