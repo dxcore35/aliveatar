@@ -27,8 +27,6 @@
         --line: #dbd7cb;
         --ink: #16170f;
         --muted: #74766b;
-        --key: oklch(0.5 0.13 265);
-        --str: oklch(0.48 0.1 165);
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -37,25 +35,24 @@
           --line: #232327;
           --ink: #fafaf8;
           --muted: #8a8a93;
-          --key: oklch(0.78 0.055 265);
-          --str: oklch(0.83 0.07 165);
         }
       }
       * { box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
-        margin: 0;
+        margin: 0; overflow: hidden;
         background: var(--page);
         color: var(--ink);
         font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
       a { color: inherit; }
 
-      /* ── nav ─────────────────────────────────────────────────────── */
+      /* ── nav — floats over the stream, takes no height from it ───── */
       nav {
+        position: fixed; inset: 0 0 auto; z-index: 5;
         display: flex; align-items: center; justify-content: space-between;
-        padding: 20px 0; gap: 12px; position: relative; z-index: 5;
+        padding: 18px 24px; gap: 12px;
       }
       .wordmark { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.86rem; }
       nav .links { display: flex; gap: 4px; }
@@ -65,65 +62,10 @@
       }
       nav a:hover { color: var(--ink); background: var(--raised); }
 
-      /* ── hero: nothing but avatars ───────────────────────────────── */
-      .hero {
-        position: relative; min-height: 74vh; display: grid; place-items: center;
-        text-align: center; overflow: hidden; padding: 40px 0 60px;
-      }
-      .trail { position: absolute; inset: 0; pointer-events: none; }
-      .trail avatar-motion {
-        position: absolute; width: 132px; height: 132px; opacity: 0;
-        border-radius: 22px; overflow: hidden; will-change: transform, opacity;
-        transform: translate(-50%, -50%);
-      }
-      .hero-copy { position: relative; z-index: 2; pointer-events: none; display: grid; gap: 20px; justify-items: center; }
-      .hero-copy > * { pointer-events: auto; }
-      h1 {
-        margin: 0; font-size: clamp(2.7rem, 8vw, 5rem); font-weight: 600;
-        letter-spacing: -0.05em; line-height: 0.92;
-      }
-      .lede { margin: 0; max-width: 30em; color: var(--muted); font-size: 1.05rem; }
-      .hint {
-        margin: 0; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-        font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em;
-      }
-
-      /* ── install button — one line, whole thing copies ───────────── */
-      .cmd {
-        display: inline-flex; align-items: center; gap: 12px; cursor: pointer;
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px;
-        color: var(--ink); background: color-mix(in oklab, var(--raised) 60%, transparent);
-        border: 1px solid var(--line); border-radius: 12px;
-        padding: 10px 12px 10px 16px; transition: border-color 0.15s, background 0.15s;
-      }
-      .cmd:hover { background: var(--raised); border-color: color-mix(in oklab, var(--muted) 50%, transparent); }
-      .cmd .sigil, .cmd .ico { color: var(--muted); user-select: none; }
-      .cmd:hover .ico { color: var(--ink); }
-      .cmd .ico { display: flex; transition: color 0.15s; }
-
-      /* ── sections ────────────────────────────────────────────────── */
-      section { padding: 66px 0; border-top: 1px solid var(--line); }
-      h2 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; }
-      .sub { margin: 0 0 26px; color: var(--muted); max-width: 44em; }
-
-      /* ── what it plugs into: one word each, nothing more ─────────── */
-      .badges {
-        list-style: none; margin: 4px 0 0; padding: 0;
-        display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center;
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
-        color: var(--muted);
-      }
-      .badges li {
-        border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
-        background: color-mix(in oklab, var(--raised) 60%, transparent);
-        transition: color 0.15s, border-color 0.15s;
-      }
-      .badges li:hover { color: var(--ink); border-color: color-mix(in oklab, var(--muted) 50%, transparent); }
-
-      /* ── radial stream: faces fly out, the words hold the centre ─── */
+      /* ── the stream: the page IS this ────────────────────────────── */
       .stream {
-        position: relative; overflow: hidden; padding: 0;
-        min-height: min(88vh, 780px); display: grid; place-items: center;
+        position: relative; height: 100%; overflow: hidden;
+        display: grid; place-items: center;
       }
       .stage { position: absolute; inset: 0; pointer-events: none; }
       .tile {
@@ -132,52 +74,85 @@
         opacity: 0;
       }
       .tile avatar-motion { width: 100%; height: 100%; display: block; }
+
+      /* ── the words, in the hole the stream leaves open ───────────── */
       .stream-copy {
-        position: relative; z-index: 2; text-align: center; pointer-events: none;
-        padding: 26px 30px; max-width: 30em;
+        position: relative; z-index: 2; text-align: center;
+        display: grid; gap: 16px; justify-items: center;
+        padding: 22px 26px; max-width: 32em;
       }
-      .stream-copy h2 { margin: 0 0 6px; }
-      .stream-copy .sub { margin: 0; }
+      h1 {
+        margin: 0; font-size: clamp(2.4rem, 6.4vw, 4.2rem); font-weight: 600;
+        letter-spacing: -0.05em; line-height: 0.94;
+      }
+      .lede { margin: 0; color: var(--muted); font-size: 1.05rem; }
       .count {
-        margin: 14px 0 0; color: var(--muted);
+        margin: 0; color: var(--muted);
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.74rem;
+      }
+      .count b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+      /* ── install line — the whole thing copies ───────────────────── */
+      .cmd {
+        display: inline-flex; align-items: center; gap: 12px; cursor: pointer;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px;
+        color: var(--ink); background: color-mix(in oklab, var(--raised) 72%, transparent);
+        border: 1px solid var(--line); border-radius: 12px;
+        padding: 10px 12px 10px 16px; transition: border-color 0.15s, background 0.15s;
+        backdrop-filter: blur(6px);
+      }
+      .cmd:hover { background: var(--raised); border-color: color-mix(in oklab, var(--muted) 50%, transparent); }
+      .cmd .sigil, .cmd .ico { color: var(--muted); user-select: none; }
+      .cmd:hover .ico { color: var(--ink); }
+      .cmd .ico { display: flex; transition: color 0.15s; }
+
+      /* ── what it plugs into: one word each, nothing more ─────────── */
+      .badges {
+        list-style: none; margin: 0; padding: 0;
+        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
         font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .badges li {
+        border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px;
+        background: color-mix(in oklab, var(--raised) 72%, transparent);
+        backdrop-filter: blur(6px);
       }
 
-      footer {
-        border-top: 1px solid var(--line); padding: 34px 0 64px;
-        color: var(--muted); font-size: 0.85rem; text-align: center;
+      .colophon {
+        position: fixed; inset: auto 0 0; z-index: 5; margin: 0;
+        padding: 14px; text-align: center;
+        color: var(--muted); font-size: 0.74rem;
       }
-      footer a { color: var(--muted); }
 
       @media (max-width: 620px) {
-        .trail avatar-motion { width: 96px; height: 96px; }
-        section { padding: 52px 0; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .trail { display: none; }
+        .stream-copy { gap: 13px; padding: 18px; }
+        .tile { width: 84px; height: 84px; border-radius: 15px; }
       }
     </style>
   </head>
 
   <body>
-    <div class="wrap">
-      <nav>
-        <span class="wordmark">avatar&#8209;motion</span>
-        <span class="links">
-          <a href="./lab.html">Lab</a>
-          <a href="https://github.com/dxcore35/avatar-motion">GitHub</a>
-        </span>
-      </nav>
-    </div>
+    <nav>
+      <span class="wordmark">avatar&#8209;motion</span>
+      <span class="links">
+        <a href="./lab.html">Lab</a>
+        <a href="https://github.com/dxcore35/avatar-motion">GitHub</a>
+      </span>
+    </nav>
 
-    <!-- ── hero: move the cursor, meet the people ───────────────────── -->
-    <div class="hero" id="hero">
-      <div class="trail" id="trail"></div>
-      <div class="hero-copy">
+    <!-- ── the whole page: one stream, the words in its blank centre ── -->
+    <main class="stream" id="stream">
+      <div class="stage" id="stage" aria-hidden="true"></div>
+
+      <div class="stream-copy">
         <h1>Avatars that are alive</h1>
-        <p class="lede">
-          One string in, one character out &mdash; the same one every time.
+        <p class="lede">It never runs out of people.</p>
+
+        <p class="count">
+          A new one every moment &mdash; <b id="stream-count">0</b> made since you arrived
         </p>
+
         <button class="cmd" id="cmd" aria-label="Copy: bun add github:dxcore35/avatar-motion">
           <span class="sigil" aria-hidden="true">$</span>
           <span id="cmd-text">bun add github:dxcore35/avatar-motion</span>
@@ -188,7 +163,7 @@
             </svg>
           </span>
         </button>
-        <p class="hint">move your cursor</p>
+
         <ul class="badges">
           <li>MCP</li>
           <li>CLI</li>
@@ -198,25 +173,9 @@
           <li>Zero deps</li>
         </ul>
       </div>
-    </div>
+    </main>
 
-    <!-- ── it never repeats: a radial stream, heading in the blank centre ── -->
-    <section class="stream" id="stream">
-      <div class="stage" id="stage" aria-hidden="true"></div>
-      <div class="stream-copy">
-        <h2>It never runs out of people</h2>
-        <p class="sub">Every face is made the moment it appears.</p>
-        <p class="count" id="stream-count"></p>
-      </div>
-    </section>
-
-    <footer>
-      <div class="wrap">
-        MIT licensed. Every avatar on this page was drawn in your browser.<br />
-        <a href="./lab.html">The lab</a> &middot;
-        <a href="https://github.com/dxcore35/avatar-motion">Source on GitHub</a>
-      </div>
-    </footer>
+    <p class="colophon">MIT &middot; drawn in your browser</p>
 
     <script type="module" src="./src/site.js"></script>
   </body>
