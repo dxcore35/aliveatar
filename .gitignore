@@ -4,3 +4,7 @@ docs/frames/
 node_modules/
 .DS_Store
 *.log
+
+# A local checkout of bloub, kept for reference while porting the eye engine.
+# Not part of the product; the credit lives in NOTICE.md.
+reference/
