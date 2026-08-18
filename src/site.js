@@ -8,7 +8,7 @@
 // Slow on purpose. The point is not motion, it is that every face arriving is a
 // different person — and nobody can see that from a blur.
 // ---------------------------------------------------------------------------
-import './avatar-motion.js'
+import './alive-avatar.js'
 import { randomVariation, applyVariation } from './variation.js'
 import { tap } from './sound.js'
 
@@ -181,7 +181,7 @@ const tiles = []
 for (let i = 0; i < DENSITY; i++) {
   const tile = document.createElement('div')
   tile.className = 'tile'
-  tile.appendChild(document.createElement('avatar-motion'))
+  tile.appendChild(document.createElement('alive-avatar'))
   stage.appendChild(tile)
   tiles.push(tile)
 }

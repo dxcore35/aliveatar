@@ -6,7 +6,7 @@
 // a local port is a surprise nobody wants in a product build.
 //
 //   import { connectBridge } from './bridge-client.js'
-//   connectBridge(document.querySelector('avatar-motion'), { name: 'stage' })
+//   connectBridge(document.querySelector('alive-avatar'), { name: 'stage' })
 //
 // or, in the lab, add ?bridge to the URL.
 //

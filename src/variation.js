@@ -120,7 +120,7 @@ export function randomVariation(fixed = {}, opts = {}) {
   return v
 }
 
-/** Apply a variation to an `<avatar-motion>` element. */
+/** Apply a variation to an `<alive-avatar>` element. */
 export function applyVariation(el, v) {
   for (const [k, val] of Object.entries(v)) {
     if (val === undefined || val === null || val === '') el.removeAttribute(k)

@@ -4,7 +4,7 @@
 
 First tagged release.
 
-- `<avatar-motion>` web component — plain ES modules, no build step, no
+- `<alive-avatar>` web component — plain ES modules, no build step, no
   runtime dependencies, MIT.
 - 39 states, driving saccadic eyes, breathing, idle motion and a tool-call
   animation (glasses on, bubble out, outfit colour running hot for agents).

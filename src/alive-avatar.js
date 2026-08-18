@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// <avatar-motion> — the element you drop in a page.
+// <alive-avatar> — the element you drop in a page.
 //
-//   <avatar-motion seed="agent:reception-01" kind="agent" color="#3B82F6"
+//   <alive-avatar seed="agent:reception-01" kind="agent" color="#3B82F6"
 //                  state="listening" emblem="auto" mouse-interactive>
-//   </avatar-motion>
+//   </alive-avatar>
 //
 // Attributes
 //   seed               stable id → the same person every time
@@ -425,4 +425,4 @@ function mixInk(color, ink, w = 0.55) {
   return `#${to(r1, r2)}${to(g1, g2)}${to(b1, b2)}`
 }
 
-if (!customElements.get('avatar-motion')) customElements.define('avatar-motion', AvatarMotion)
+if (!customElements.get('alive-avatar')) customElements.define('alive-avatar', AvatarMotion)

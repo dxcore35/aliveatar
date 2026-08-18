@@ -19,9 +19,9 @@
   "bugs": "https://github.com/dxcore35/aliveatar/issues",
   "license": "MIT",
   "type": "module",
-  "main": "./src/avatar-motion.js",
+  "main": "./src/alive-avatar.js",
   "exports": {
-    ".": "./src/avatar-motion.js",
+    ".": "./src/alive-avatar.js",
     "./control": "./src/control.js",
     "./variation": "./src/variation.js",
     "./bridge-client": "./src/bridge-client.js",
@@ -39,7 +39,7 @@
     "LICENSE"
   ],
   "sideEffects": [
-    "./src/avatar-motion.js"
+    "./src/alive-avatar.js"
   ],
   "scripts": {
     "dev": "bun tools/serve.js",

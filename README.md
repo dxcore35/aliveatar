@@ -27,9 +27,9 @@ bun add github:dxcore35/aliveatar
 ## Use
 
 ```html
-<script type="module" src="aliveatar/src/avatar-motion.js"></script>
+<script type="module" src="aliveatar/src/alive-avatar.js"></script>
 
-<avatar-motion seed="reception-01" state="listening"></avatar-motion>
+<alive-avatar seed="reception-01" state="listening"></alive-avatar>
 ```
 
 Only `seed` is required. It is a web component, so the same tag works in plain

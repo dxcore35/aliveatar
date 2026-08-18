@@ -13,7 +13,7 @@ see it move. There is no build step to wait on.
 
 ## Where the code lives
 
-- `src/avatar-motion.js` — the `<avatar-motion>` custom element itself.
+- `src/alive-avatar.js` — the `<alive-avatar>` custom element itself.
 - `src/humation.js` — composes a person from the seed, cuts the eyes out,
   measures the head as a sphere.
 - `src/engine.js` — the simulation and the draw pass.
@@ -48,7 +48,7 @@ measured constants, so a change to either needs to say what it's trading off.
 Before sending a pull request, run the same check CI runs:
 
 ```bash
-bun build src/avatar-motion.js src/site.js src/lab.js src/control.js src/variation.js --target=browser --outdir=/tmp/ci-build
+bun build src/alive-avatar.js src/site.js src/lab.js src/control.js src/variation.js --target=browser --outdir=/tmp/ci-build
 ```
 
 There is no test suite yet — this is the only automated gate.

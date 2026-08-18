@@ -61,7 +61,7 @@ export const CAST = [
 
 export class DemoDirector {
   /**
-   * @param {object} avatar    an <avatar-motion> element
+   * @param {object} avatar    an <alive-avatar> element
    * @param {(beat, index) => void} [onBeat]  called when each beat starts
    * @param {object} [opts]    { shuffle: boolean } — swap the person per beat
    */

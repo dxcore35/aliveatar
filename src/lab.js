@@ -1,6 +1,6 @@
 // Wiring for the draft page. No framework — the point of the draft is that the
 // merged avatar is a plain custom element you can drop anywhere.
-import './avatar-motion.js'
+import './alive-avatar.js'
 import { buildAvatar, PARTS } from './humation.js'
 import { EXPRESSION_NAMES, RINGS, BLOUB_FIRST } from './expressions.js'
 import { EYE_ACTS, ACT_BY_ID } from './motion/eyeacts.js'
@@ -19,7 +19,7 @@ const SLOTS = ['head', 'body', 'bottom', 'item', 'glasses']
 // ── The two stage avatars ───────────────────────────────────────────────────
 // Two avatars, same seed, same state, one per theme — driven as a pair so a
 // bug that only shows in one theme cannot hide.
-const live = document.createElement('avatar-motion')
+const live = document.createElement('alive-avatar')
 live.style.cssText = 'width:100%;height:100%'
 live.setAttribute('theme', 'dark')
 // The fade between people is the transition; an arrival animation on top of it
@@ -27,7 +27,7 @@ live.setAttribute('theme', 'dark')
 live.setAttribute('no-mount', '')
 $('box-live').appendChild(live)
 
-const lightTwin = document.createElement('avatar-motion')
+const lightTwin = document.createElement('alive-avatar')
 lightTwin.style.cssText = 'width:100%;height:100%'
 lightTwin.setAttribute('theme', 'light')
 lightTwin.setAttribute('no-mount', '')
@@ -735,7 +735,7 @@ setInterval(() => {
   $('r-active').textContent = String(activeCount())
   $('r-total').textContent = String(totalCount())
   $('r-aura').textContent = String(
-    [...document.querySelectorAll('avatar-motion')].filter((a) => a.engine?.auraSlot).length,
+    [...document.querySelectorAll('alive-avatar')].filter((a) => a.engine?.auraSlot).length,
   )
 }, 400)
 
@@ -775,7 +775,7 @@ function crowdTile(v) {
   fig.className = 'figure'
   const box = document.createElement('div')
   box.className = 'box'
-  const el = document.createElement('avatar-motion')
+  const el = document.createElement('alive-avatar')
   el.style.cssText = 'width:100%;height:100%'
   applyVariation(el, v)
   el.setAttribute('emblem', 'icon')
@@ -893,8 +893,8 @@ if (new URLSearchParams(location.search).has('bridge')) {
   import('./bridge-client.js').then(({ connectBridge }) => {
     // A getter, not the element: the lab rebuilds its avatar on every identity
     // change, so the connection has to follow the current one.
-    connectBridge(() => document.querySelector('#box-live avatar-motion'), { name: 'stage' })
-    connectBridge(() => document.querySelector('#box-light avatar-motion'), { name: 'light' })
+    connectBridge(() => document.querySelector('#box-live alive-avatar'), { name: 'stage' })
+    connectBridge(() => document.querySelector('#box-light alive-avatar'), { name: 'light' })
     const note = $('demo-note')
     if (note) note.textContent = 'bridged — try: bun bin/avatar.js state listening'
   })

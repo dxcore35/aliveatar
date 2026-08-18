@@ -12,5 +12,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Check every entry point parses
         run: |
-          bun build src/avatar-motion.js src/site.js src/lab.js src/control.js src/variation.js \
+          bun build src/alive-avatar.js src/site.js src/lab.js src/control.js src/variation.js \
             --target=browser --outdir=/tmp/ci-build

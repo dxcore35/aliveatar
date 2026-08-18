@@ -205,7 +205,7 @@ export const MANIFEST = {
 }
 
 /**
- * Handle one command against an <avatar-motion> element.
+ * Handle one command against an <alive-avatar> element.
  *
  * @param {HTMLElement} avatar
  * @param {object} msg
