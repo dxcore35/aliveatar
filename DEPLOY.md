@@ -1,22 +1,36 @@
-# Deploy Runbook — avatar.dxcore35.eu
+# Deploy
 
-Click-by-click guide to put this site on the home Linux server. Written
-for a non-technical reader — every technical word is explained where it
-first appears.
+This site is plain files — HTML, JavaScript, images. No build step, no server
+code, no database, no environment variables. Anything that can serve a folder
+over HTTP can host it.
 
----
+## Vercel (the live site)
 
-## 1. What you get
+```bash
+vercel --prod
+```
 
-A public web address, `https://avatar.dxcore35.eu`, that anyone can open
-in a browser. The padlock icon (HTTPS, meaning the connection is
-encrypted) works automatically. The server itself has **no open ports** —
-nobody on the internet can reach the machine directly, only through the
-Cloudflare Tunnel set up below. This site has no server-side code (it is
-plain files: HTML, JavaScript, images) and no database, so there is
-nothing else to configure.
+The first run asks which project to link and then remembers it. `vercel.json`
+is in the repo and only sets cache headers: the vendored artwork never changes,
+so it is cached for a year; `src/` is cached for ten minutes.
 
-## 2. One-time Cloudflare Tunnel setup (~10 min, from any browser)
+To make a pull request preview, push a branch — Vercel builds every branch on
+its own URL.
+
+## Anywhere else
+
+Netlify, GitHub Pages, Cloudflare Pages, or an `nginx` that points at the
+checkout. All of them need the same thing: serve `index.html`, `lab.html`,
+`src/`, `vendor/` and `docs/` as static files.
+
+## Your own machine, behind a tunnel
+
+The path below publishes the site from a home server over HTTPS **without
+opening a port** — the machine makes an outbound connection to Cloudflare, and
+Cloudflare accepts the public traffic. Use it when you want the files on
+hardware you own.
+
+### 1. One-time Cloudflare Tunnel setup (~10 min, from any browser)
 
 A **tunnel** is a private, outbound-only connection from the server to
 Cloudflare. The server calls out to Cloudflare and keeps that connection
@@ -45,7 +59,7 @@ server or the home router.
    → **Save**. HTTPS is issued automatically; there is nothing else to
    configure for the certificate.
 
-## 3. On the server: install and start
+### 2. On the server: install and start
 
 A **container** is a small, self-contained package that runs the app the
 same way everywhere, without installing anything else on the machine.
@@ -91,7 +105,7 @@ Build and start everything in the background:
 docker compose up -d --build
 ```
 
-## 4. How to check it worked
+### 3. How to check it worked
 
 List the running containers and confirm both show as healthy/running:
 
@@ -109,7 +123,7 @@ curl -I https://avatar.dxcore35.eu
 Open `https://avatar.dxcore35.eu` in a browser and confirm the page
 loads with a valid padlock.
 
-## 5. How to update after a code change
+### 4. How to update after a code change
 
 ```bash
 git pull && docker compose up -d --build
@@ -117,24 +131,3 @@ git pull && docker compose up -d --build
 
 This pulls the newest files and rebuilds the container in place; the
 tunnel keeps running throughout, so the address never goes down.
-
-## 6. Running it without Docker
-
-This site has no build step and no server-side code — it is only static
-files. Any of the following work, with no code changes:
-
-- **Local preview on your own machine:**
-
-  ```bash
-  bun run dev
-  ```
-
-  (starts `tools/serve.js`, a small local file server included in the
-  repo, for testing before you deploy)
-
-- **Any static file host** — upload the repository (or point the host at
-  it) to Netlify, Vercel, GitHub Pages, or a plain `nginx` install
-  elsewhere. All that's required is that the host serves `index.html`,
-  `lab.html`, `src/`, `vendor/`, and `docs/` as plain files over HTTP —
-  there is no server process, database, or environment variable to
-  configure outside of this Docker/Cloudflare path.

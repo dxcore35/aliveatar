@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "headers": [
+    {
+      "source": "/vendor/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/src/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=600, must-revalidate" }]
+    }
+  ]
+}

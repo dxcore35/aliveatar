@@ -15,17 +15,10 @@ No build step. No dependencies. MIT, all of it.
 The drawn people are **not this project's artwork**. Every head, body, bottom,
 item and pair of glasses comes from
 **[Humation](https://github.com/endo-yusuke/humation)** (MIT), vendored
-unmodified under `vendor/@humation/`. What is added here happens at runtime and
-never edits that art: the drawn-on eyes are cut out, the head is measured as a
-sphere, flat fills are repainted as lit gradients, and texture is added.
-
-The eye motion on that sphere — saccades, blinks, the spring — is a port of a
-public gist by
-[Jérémy Perret](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
-(MIT).
-
-Everything else — the icon set, the textures, the states, the shader — is
-original. Full detail in [`NOTICE.md`](NOTICE.md).
+unmodified. The eye motion is ported from a
+[public gist](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
+by Jérémy Perret (MIT). Everything added here happens at runtime and never edits
+the art. Full credits: [`NOTICE.md`](NOTICE.md).
 
 ## Install
 
@@ -94,6 +87,14 @@ laser eyes.
 
 ![Three agents mid tool call, each with the call name in a bubble](docs/tool-call.png)
 
+## The lab
+
+`/lab.html` is where you try things: both themes side by side, every state,
+every part, all 41 eye moves, the spring, and an endless crowd. Nothing in it
+is a mock-up — it drives the same element you install.
+
+![The lab: one avatar in dark and light, with every state and part below it](docs/lab.png)
+
 ## CLI
 
 Drive any avatar in an open page from a terminal. Start the bridge, add
@@ -111,9 +112,8 @@ avatar random kind=customer
 avatar options
 ```
 
-`avatar tool.start name=search_calendar`, `avatar parts skull=hexagon`,
-`avatar act.play scan` and `avatar say "text"` work the same way. Every command
-reports what it did, and a wrong value comes back with the legal ones attached.
+`avatar tool.start`, `avatar parts`, `avatar act.play` and `avatar say` work the
+same way. A wrong value comes back with the legal ones attached.
 
 ## MCP — let Claude drive the face
 
@@ -121,10 +121,8 @@ reports what it did, and a wrong value comes back with the legal ones attached.
 claude mcp add avatar -- bun /path/to/avatar-motion/mcp/server.js
 ```
 
-That is the whole setup. Twenty-one tools appear — `avatar_state`,
-`avatar_tool_start`, `avatar_random`, `avatar_parts`, `avatar_options` and the
-rest — generated from the same command list the CLI uses, so the two can never
-drift. Ask Claude to make the receptionist look busy, and it will.
+That is the whole setup. Twenty-one tools appear, generated from the same command
+list the CLI uses. Ask Claude to make the receptionist look busy, and it will.
 
 ## Run it
 
@@ -143,20 +141,22 @@ Starts the bridge on :4332, which is what the CLI and MCP talk to.
 
 ## Deploy
 
-Any static host works; there is no server code. [`DEPLOY.md`](DEPLOY.md) covers
-Docker plus a Cloudflare Tunnel — an outbound-only connection that publishes the
-site over HTTPS without opening a port on your machine.
+There is no server code and no build step, so any static host serves the repo
+as it stands.
 
 ```bash
-docker compose up -d --build
+vercel --prod
 ```
+
+`vercel.json` is already here; it only sets cache headers. Other paths —
+Docker, or a Cloudflare Tunnel that publishes over HTTPS without opening a port
+— are in [`DEPLOY.md`](DEPLOY.md).
 
 ## Speech
 
-The mouth is driven by the audio the agent is actually producing, not by a
-timer. Loudness opens the jaw; the brightness of the sound widens or rounds the
-lips. There is no phoneme model and no language assumption — it works on Slovak
-the same as on English, because it is reading the waveform.
+The mouth is driven by the audio the agent is actually producing, not by a timer.
+Loudness opens the jaw; the brightness of the sound shapes the lips. No phoneme
+model, so it works on Slovak exactly as on English — it reads the waveform.
 
 ```js
 el.send({ type: 'speech.attach', stream })   // a MediaStream, an <audio>, or a node
@@ -170,28 +170,15 @@ separate from drawing, so a slow frame changes nothing about the motion.
 `prefers-reduced-motion` is honoured. The WebGL aura is pooled three deep, and
 any avatar can decline it with `no-aura`.
 
-## Files
+## Where things are
 
-| Path | What |
-|---|---|
-| `index.html` | the landing page |
-| `lab.html` | the lab |
-| `src/avatar-motion.js` | the `<avatar-motion>` element |
-| `src/humation.js` | compose, cut the eyes, measure the sphere, the look pass |
-| `src/engine.js` | the simulation and the draw pass |
-| `src/states.js` | 39 states: pools, cadences, body motion, tool scripts |
-| `src/expressions.js` | parametric eye and mouth rings |
-| `src/motion/` | gaze, body, sphere, eye acts |
-| `src/render/` | textures, shading, icons, emblems, skulls |
-| `src/control.js` | one command set, shared by the page, the CLI and MCP |
-| `src/variation.js` | one definition of "a random avatar" |
-| `src/speech.js` | the mouth, from a waveform |
-| `src/sound.js` | the tap heard when a face is made |
-| `bin/avatar.js` | the CLI |
-| `mcp/server.js` | the MCP server |
-| `tools/bridge.js` | the wire between a process and a page |
-| `tools/shot.sh` | rebuilds the images above |
-| `docs/ENGINE.md` | how the engine works, in full |
+`src/humation.js` composes the drawing, cuts the drawn-on eyes out and measures
+the head as a sphere. `src/engine.js` runs the simulation and the draw pass.
+`src/states.js` holds all 39 states. `src/control.js` is one command set shared
+by the page, the CLI and MCP, so those three can never drift.
+
+`bin/avatar.js` is the CLI, `mcp/server.js` the MCP server, `tools/bridge.js`
+the wire between them and a page.
 
 ## How it works
 
