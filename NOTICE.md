@@ -2,16 +2,24 @@
 
 ## Humation — MIT
 
-`vendor/@humation/core` and `vendor/@humation/assets-humation-1` are vendored
-copies of the Humation avatar system by Yusuke Endo, used unmodified and under
-the MIT licence. Their `LICENSE.md` files are included in those directories.
+Copyright (c) 2026 Humation contributors
 
-- https://github.com/endo-yusuke/humation
+Two packages from the Humation project are vendored read-only, unmodified,
+under the MIT licence, each with its own `LICENSE.md` intact:
 
-The avatar artwork (heads, bodies, bottoms, items, glasses) comes from that
-package. Everything this project does to it — cutting the baked eyes, measuring
-the head sphere, repainting the fills as lit gradients — is applied at runtime;
-the source assets are not altered.
+- `vendor/@humation/core` (v1.0.1) — "Core Humation avatar manifest and SVG
+  renderer."
+- `vendor/@humation/assets-humation-1` (v1.0.1) — "Humation 1 avatar manifest
+  and SVG assets."
+
+Upstream: https://github.com/endo-yusuke/humation
+
+The avatar artwork — the hand-drawn Humation 1 set of 24 heads, 8 bodies, 8
+bottoms, 43 items and 3 pairs of glasses — comes from that package, and none
+of it is original to this project. Everything this project does to it —
+cutting the baked-in eyes, measuring the head as a sphere, repainting the
+flat fills as lit gradients, adding texture — is applied at runtime. The
+vendored files themselves are never edited.
 
 ## bloub — MIT
 
@@ -81,3 +89,11 @@ following were rejected and are **not** present in this repository:
 
 The emblem icon set in `src/render/icons.js` was drawn for this project
 specifically so that no third-party asset licence has to be carried.
+
+## procedural-sounds — MIT
+
+The tap heard when a face is made is an "exotic tap" exported from
+**procedural-sounds** — https://procedural-sounds.vercel.app — and the player
+that turns it into Web Audio nodes comes from the same place. Both live in
+`src/sound.js`, unmodified, between the marked comments. Nothing is fetched at
+runtime: the sound is synthesised in the browser from the exported numbers.

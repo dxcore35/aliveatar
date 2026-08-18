@@ -15,6 +15,28 @@ running side by side so a bug that only shows in one theme cannot hide.*
 |---|---|
 | ![glasses on, bubble out, outfit running hot](docs/tool-call.png) | ![laser eyes, no glasses](docs/laser-search.png) |
 
+[![CI](https://github.com/dxcore35/avatar-motion/actions/workflows/ci.yml/badge.svg)](https://github.com/dxcore35/avatar-motion/actions/workflows/ci.yml)
+![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![Build step: none](https://img.shields.io/badge/build%20step-none-brightgreen.svg)
+
+## Built on
+
+The people you see here are **not drawn by this project**. Every head, body,
+bottom, item and pair of glasses comes from
+**[Humation](https://github.com/endo-yusuke/humation)** (MIT) — a hand-drawn
+avatar set, vendored unmodified under `vendor/@humation/`. What this project
+adds happens at runtime, without touching that art: it cuts the drawn-on eyes
+out of the head, measures the head as a sphere, repaints the flat fills as lit
+gradients, and adds texture.
+
+The eye motion on top of that sphere — saccades, blinks, the spring physics —
+is a port of the engine from a public gist by
+[Jérémy Perret](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
+(MIT).
+
+Full credit, licence text and exactly what was changed: [`NOTICE.md`](NOTICE.md).
+
 ## Install
 
 ```bash
@@ -382,14 +404,22 @@ drawing them here means the project carries no asset licence at all.
 | `tools/bake-humation.js` | rebuilds `vendor/humation.bundle.js` |
 | `tools/serve.js` | the static dev server |
 
+## Credits
+
+- **Artwork** — every head, body, bottom, item and pair of glasses is
+  [Humation](https://github.com/endo-yusuke/humation) (MIT), vendored
+  unmodified under `vendor/@humation/core` and
+  `vendor/@humation/assets-humation-1`, with its licence files intact.
+- **Eye motion** — a port of the engine from a public gist by
+  [Jérémy Perret](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
+  (MIT), in `src/motion/sphere.js`.
+- **Everything else** — the merge itself, the icon set, the textures, the
+  shader, the speech engine and the control API — is original to this
+  project.
+
+Full detail, including exactly which files were ported and what was changed
+on purpose: [`NOTICE.md`](NOTICE.md).
+
 ## Licence
 
-MIT — see [`LICENSE`](LICENSE).
-
-### Third-party
-
-Humation (`@humation/core`, `@humation/assets-humation-1`) is MIT, vendored
-under `vendor/@humation/` with its licence files intact. The engine behaviour is
-reimplemented from the linked public gist. Everything else here — the icon set,
-the textures, the shader — is original to this project, so there is no
-third-party asset licence to carry.
+MIT — see [`LICENSE`](LICENSE). Third-party notices: [`NOTICE.md`](NOTICE.md).

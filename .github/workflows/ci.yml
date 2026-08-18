@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Check every entry point parses
+        run: |
+          bun build src/avatar-motion.js src/site.js src/lab.js src/control.js src/variation.js \
+            --target=browser --outdir=/tmp/ci-build

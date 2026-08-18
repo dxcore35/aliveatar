@@ -1,9 +1,9 @@
 // Tiny static server for the draft. ES modules need http://, so this is the way
 // to open index.html.
 //
-//   bun run dev   →  http://localhost:4321
+//   bun run dev   →  http://localhost:4330
 const ROOT = import.meta.dir.replace(/\/tools$/, '')
-const PORT = Number(process.env.PORT || 4321)
+const PORT = Number(process.env.PORT || 4330)
 
 const TYPES = {
   html: 'text/html; charset=utf-8',

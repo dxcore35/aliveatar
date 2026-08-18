@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 import './avatar-motion.js'
 import { randomVariation, applyVariation } from './variation.js'
+import { tap, enableSound, disableSound, soundOn } from './sound.js'
 
 const $ = (id) => document.getElementById(id)
 
@@ -34,6 +35,20 @@ cmd.addEventListener('click', async () => {
   }
   ico.innerHTML = TICK
   setTimeout(() => (ico.innerHTML = glyph), 1400)
+})
+
+// ── sound ───────────────────────────────────────────────────────────────────
+// Off until asked. A page that starts making noise on its own is rude, and a
+// browser blocks it anyway until the visitor has clicked something — so the
+// click on this button is both the permission and the gesture.
+const soundBtn = $('sound')
+soundBtn.addEventListener('click', () => {
+  if (soundOn()) disableSound()
+  else enableSound()
+  const on = soundOn()
+  soundBtn.setAttribute('aria-pressed', String(on))
+  soundBtn.setAttribute('aria-label', on ? 'Sound on' : 'Sound off')
+  $('sound-glyph').innerHTML = on ? '&#9835;' : '&#9834;'
 })
 
 // ── the stream ──────────────────────────────────────────────────────────────
@@ -128,6 +143,7 @@ function launch(tile) {
 
   born++
   counter.textContent = born.toLocaleString('en-US')
+  tap()
 
   const at = (r) => [
     box.width / 2 + Math.cos(angle) * r - TILE / 2,
