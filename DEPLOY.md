@@ -1,4 +1,4 @@
-# Deploy Runbook — avatar.dxcore.store
+# Deploy Runbook — avatar.dxcore35.eu
 
 Click-by-click guide to put this site on the home Linux server. Written
 for a non-technical reader — every technical word is explained where it
@@ -8,7 +8,7 @@ first appears.
 
 ## 1. What you get
 
-A public web address, `https://avatar.dxcore.store`, that anyone can open
+A public web address, `https://avatar.dxcore35.eu`, that anyone can open
 in a browser. The padlock icon (HTTPS, meaning the connection is
 encrypted) works automatically. The server itself has **no open ports** —
 nobody on the internet can reach the machine directly, only through the
@@ -24,7 +24,7 @@ open; Cloudflare then forwards visitor traffic through it. Because the
 server only calls *out*, there is no need to open any port *in* on the
 server or the home router.
 
-1. Log in to https://dash.cloudflare.com (the `dxcore.store` domain
+1. Log in to https://dash.cloudflare.com (the `dxcore35.eu` domain
    should already be set up there — this reuses it).
 2. Go to **Zero Trust** → **Networks** → **Tunnels**.
 3. If a tunnel already exists that you want to reuse, open it. Otherwise
@@ -37,7 +37,7 @@ server or the home router.
 5. Still on the tunnel screen, go to the **Public Hostname** tab → **Add a
    public hostname**:
    - Subdomain: `avatar`
-   - Domain: `dxcore.store`
+   - Domain: `dxcore35.eu`
    - Service: **HTTP** → `web:80`
    (`web:80` is the name Docker Compose gives the site's container on
    port 80 — see step 3, this is not a real internet address, it only
@@ -103,10 +103,10 @@ Ask the public address for its headers — a working site returns
 `HTTP/2 200`:
 
 ```bash
-curl -I https://avatar.dxcore.store
+curl -I https://avatar.dxcore35.eu
 ```
 
-Open `https://avatar.dxcore.store` in a browser and confirm the page
+Open `https://avatar.dxcore35.eu` in a browser and confirm the page
 loads with a valid padlock.
 
 ## 5. How to update after a code change

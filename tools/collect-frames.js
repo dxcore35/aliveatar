@@ -6,6 +6,7 @@
 // rather than round-tripping megabytes of base64 through anything else.
 //
 //   bun tools/collect-frames.js          # listens on :4331
+//   POST /shot/<name>.png                # one still, straight into docs/
 //   (drive the page, which POSTs /frame/0001 … )
 //   ffmpeg -i docs/frames/%04d.png ...
 const ROOT = import.meta.dir.replace(/\/tools$/, '')
@@ -32,6 +33,16 @@ Bun.serve({
       count++
       return new Response('ok', { headers: cors })
     }
+    // A named still, for the README. Same reason as the frames above: the only
+    // renderer that can draw this avatar is a browser, so the page rasterises
+    // itself and posts the bytes here.
+    const shot = url.pathname.match(/^\/shot\/([\w.-]+\.png)$/)
+    if (req.method === 'POST' && shot) {
+      const buf = await req.arrayBuffer()
+      await Bun.write(`${ROOT}/docs/${shot[1]}`, buf)
+      return new Response('ok', { headers: cors })
+    }
+
     if (url.pathname === '/count') return new Response(String(count), { headers: cors })
     if (url.pathname === '/reset') {
       count = 0

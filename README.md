@@ -2,40 +2,30 @@
 
 **Living avatars for AI agents and people.** One string in, one character out —
 the same one every time. It blinks, breathes, looks around, and shows what your
-agent is doing right now. No build step, no dependencies, MIT.
+agent is doing right now.
 
-🔗 **[avatar.dxcore.store](https://avatar.dxcore.store)** — try it · **[the lab](https://avatar.dxcore.store/lab.html)** — every knob
+No build step. No dependencies. MIT, all of it.
 
-![Idle, listening, thinking, a tool call, a search, and pleased — dark and light, same seed, driven together](docs/avatar-motion.gif)
+**[avatar.dxcore35.eu](https://avatar.dxcore35.eu)** · **[the lab](https://avatar.dxcore35.eu/lab.html)**
 
-*Left: dark mode. Right: light mode. Same person, same seed, same animation —
-running side by side so a bug that only shows in one theme cannot hide.*
-
-| Running a tool | Searching |
-|---|---|
-| ![glasses on, bubble out, outfit running hot](docs/tool-call.png) | ![laser eyes, no glasses](docs/laser-search.png) |
-
-[![CI](https://github.com/dxcore35/avatar-motion/actions/workflows/ci.yml/badge.svg)](https://github.com/dxcore35/avatar-motion/actions/workflows/ci.yml)
-![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)
-![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
-![Build step: none](https://img.shields.io/badge/build%20step-none-brightgreen.svg)
+![A page full of avatars streaming outward, each a different person](docs/hero.png)
 
 ## Built on
 
-The people you see here are **not drawn by this project**. Every head, body,
-bottom, item and pair of glasses comes from
-**[Humation](https://github.com/endo-yusuke/humation)** (MIT) — a hand-drawn
-avatar set, vendored unmodified under `vendor/@humation/`. What this project
-adds happens at runtime, without touching that art: it cuts the drawn-on eyes
-out of the head, measures the head as a sphere, repaints the flat fills as lit
-gradients, and adds texture.
+The drawn people are **not this project's artwork**. Every head, body, bottom,
+item and pair of glasses comes from
+**[Humation](https://github.com/endo-yusuke/humation)** (MIT), vendored
+unmodified under `vendor/@humation/`. What is added here happens at runtime and
+never edits that art: the drawn-on eyes are cut out, the head is measured as a
+sphere, flat fills are repainted as lit gradients, and texture is added.
 
-The eye motion on top of that sphere — saccades, blinks, the spring physics —
-is a port of the engine from a public gist by
+The eye motion on that sphere — saccades, blinks, the spring — is a port of a
+public gist by
 [Jérémy Perret](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
 (MIT).
 
-Full credit, licence text and exactly what was changed: [`NOTICE.md`](NOTICE.md).
+Everything else — the icon set, the textures, the states, the shader — is
+original. Full detail in [`NOTICE.md`](NOTICE.md).
 
 ## Install
 
@@ -43,383 +33,165 @@ Full credit, licence text and exactly what was changed: [`NOTICE.md`](NOTICE.md)
 bun add github:dxcore35/avatar-motion
 ```
 
-There is nothing to build and nothing to compile. The Humation artwork is
-pre-bundled into `vendor/humation.bundle.js`, and every source file is a plain
-ES module the browser loads directly.
-
-## Use it
+## Use
 
 ```html
 <script type="module" src="avatar-motion/src/avatar-motion.js"></script>
 
-<avatar-motion seed="agent:reception-01" kind="agent" color="#3B82F6"
-               state="listening" emblem="icon" mouse-interactive></avatar-motion>
+<avatar-motion seed="reception-01" state="listening"></avatar-motion>
 ```
 
-Only `seed` is required. It is a web component — a custom HTML tag the browser
-knows how to draw — so the same tag works in plain HTML, React, Vue or Svelte.
+Only `seed` is required. It is a web component, so the same tag works in plain
+HTML, React, Vue or Svelte.
 
-| Attribute | Meaning |
-|---|---|
-| `seed` | stable id → the same person every time |
-| `kind` | `agent` (coloured AI mascot) or `customer` (person) |
-| `color` | the agent's signature colour, used as its skin |
-| `gender` | `male` / `female` — constrains hair and lower body |
-| `age` | a number; drives greying, reading glasses and pace |
-| `state` | any of the 39 states in `src/states.js` |
-| `skull` | agents only: `round` `squircle` `hexagon` `egg` `pear` `capsule` `diamond` `shield` `triangle` `blob` |
-| `head` `body` `bottom` `item` `glasses` | force a specific Humation part |
-| `emblem` | `icon` drawn set · `auto` emoji · `item` Humation hat/pet · `off` |
-| `mouse-interactive` | the eyes follow the pointer (real smooth pursuit) |
-| `flat` | skip the lighting, texture and grain pass |
-| `no-aura` | never claim a WebGL surface |
-| `demo` | run the scripted demo on a loop |
-| `no-mount` | skip the arrival animation |
-| `transparent-bg` | do not paint the avatar's own background |
+## Properties
+
+| Attribute | Values | What it does |
+|---|---|---|
+| `seed` | any string | The id. The same string is always the same character. |
+| `kind` | `agent` · `customer` | An AI mascot, or a person. Agents may run tools; people do not. |
+| `color` | any hex | An agent's signature colour. It becomes the skin. |
+| `gender` | `male` · `female` | Constrains hair and lower body. Omit for either. |
+| `age` | a number | Greying, reading glasses, a slower pace. |
+| `state` | 39 of them, below | What the face is doing. |
+| `skull` | `round` `squircle` `hexagon` `egg` `pear` `capsule` `diamond` `shield` `triangle` `blob` | The generated head shape. Agents only. |
+| `head` | 24 names | Force a hairstyle instead of letting the seed pick. |
+| `body` | 8 names | Force a top. |
+| `bottom` | 8 names | Force a lower body. |
+| `item` | 43 names | Force a hat, pet or held object. |
+| `glasses` | `none` `round` `tiny` | Force glasses. Otherwise age and tool calls decide. |
+| `emblem` | `icon` · `item` · `off` | The symbol over the head, the Humation hat, or nothing. |
+| `mouse-interactive` | flag | The eyes follow the pointer. |
+| `demo` | flag | Run a scripted demo on a loop. |
+| `flat` | flag | Skip lighting, texture and grain. |
+| `no-aura` | flag | Never claim a WebGL surface. |
+| `no-mount` | flag | Skip the arrival animation. |
+| `transparent-bg` | flag | Do not paint the avatar's own background. |
+
+`avatar options` prints every legal part name at any time.
+
+### Methods
 
 ```js
-el.runTool({ name: 'calendar.find_slot', args: '{ day: "tue" }', result: '3 slots' })
-el.blink(); el.spin(1); el.remount(); el.setState('thinking'); el.setExpression(17)
+el.setState('thinking')
+el.runTool({ name: 'search_calendar', args: '{ day: "tue" }', result: '3 slots' })
+el.send({ type: 'speech.attach', stream })   // the mouth follows real audio
+el.blink(); el.spin(); el.remount(); el.playAct('scan')
 ```
 
-## Run the site locally
+## States
+
+39 of them. One attribute changes the eyes, brow, mouth, posture and the symbol
+over the head, together.
+
+![Twenty-four of the thirty-nine states, each labelled](docs/states.png)
+
+## Tool calls
+
+When an agent calls a tool the face performs it: glasses on, a bubble with the
+call in it, the outfit running hot, and the eyes doing the lookup. A search gets
+laser eyes.
+
+![Three agents mid tool call, each with the call name in a bubble](docs/tool-call.png)
+
+## CLI
+
+Drive any avatar in an open page from a terminal. Start the bridge, add
+`?bridge` to the page URL, then:
+
+```bash
+avatar state listening
+```
+
+```bash
+avatar random kind=customer
+```
+
+```bash
+avatar options
+```
+
+`avatar tool.start name=search_calendar`, `avatar parts skull=hexagon`,
+`avatar act.play scan` and `avatar say "text"` work the same way. Every command
+reports what it did, and a wrong value comes back with the legal ones attached.
+
+## MCP — let Claude drive the face
+
+```bash
+claude mcp add avatar -- bun /path/to/avatar-motion/mcp/server.js
+```
+
+That is the whole setup. Twenty-one tools appear — `avatar_state`,
+`avatar_tool_start`, `avatar_random`, `avatar_parts`, `avatar_options` and the
+rest — generated from the same command list the CLI uses, so the two can never
+drift. Ask Claude to make the receptionist look busy, and it will.
+
+## Run it
 
 ```bash
 bun run dev
 ```
 
-Then open <http://localhost:4330>. `/` is the landing page and `/lab.html` is
-the workbench — every state, all 41 eye types, the spring, the crowd.
-
-## Put it on the web
-
-Any static host works, because there is no server code:
-[`DEPLOY.md`](DEPLOY.md) walks through Docker plus a Cloudflare Tunnel (an
-outbound-only connection that publishes the site over HTTPS without opening a
-port on your machine), and lists the plain-static alternatives.
+<http://localhost:4330> is the site, `/lab.html` is the workbench — every state,
+all 41 eye types, the spring, an endless crowd.
 
 ```bash
-cp .env.example .env      # paste your tunnel token
+bun run bridge
+```
+
+Starts the bridge on :4332, which is what the CLI and MCP talk to.
+
+## Deploy
+
+Any static host works; there is no server code. [`DEPLOY.md`](DEPLOY.md) covers
+Docker plus a Cloudflare Tunnel — an outbound-only connection that publishes the
+site over HTTPS without opening a port on your machine.
+
+```bash
 docker compose up -d --build
 ```
 
-## Speech — the point of it, for a voice agent
+## Speech
 
-The mouth is driven by the **audio the agent is actually producing**, not by a
-timer. A timed mouth desynchronises from the voice within a sentence; a mouth
-driven by the waveform stays locked to it forever, in any language, with no
-phoneme model and no alignment step.
-
-Full viseme recognition needs an aligner, and you do not need one. You do not
-have to know *which* vowel is being said to draw a convincing mouth — only how
-**open** it is and how **wide**. Two numbers off an FFT give both:
-
-- **loudness** → how far the jaw drops
-- **spectral centroid** → where the energy sits. Open back vowels ("aa", "oh")
-  put it low; front vowels and sibilants ("ee", "s") put it high. Low → round
-  and open, high → wide and flat.
-
-Consonant closures matter as much as vowels: real speech snaps shut on every
-p, b and m, so a fast drop in loudness closes the mouth hard, and the release
-is slower than the closure. Loud syllables also push the head — the small
-emphatic nods people make on stressed words, which is most of what separates
-good lip sync from cheap lip sync.
+The mouth is driven by the audio the agent is actually producing, not by a
+timer. Loudness opens the jaw; the brightness of the sound widens or rounds the
+lips. There is no phoneme model and no language assumption — it works on Slovak
+the same as on English, because it is reading the waveform.
 
 ```js
-avatar.send({ type: 'speech.attach', stream: livekitTrack.mediaStream })
-// or, when the audio is not reachable from the browser:
-avatar.send({ type: 'speech.level', level: 0.7, tone: 0.4 })
+el.send({ type: 'speech.attach', stream })   // a MediaStream, an <audio>, or a node
 ```
 
-**Emotion tags.** TTS scripts usually already carry them, which makes them the
-cheapest possible source of truth about delivery — the copy says it.
+## How it behaves in production
 
-```js
-const { clean } = avatar.send({ type: 'say', text: '[happy] Found it! [thinking] one moment', ms: 2400 })
-tts.speak(clean)  // tags stripped; the face is cued across the utterance
-```
-
-## Driving it from an app
-
-One entry point, plain JSON in, events out. This is the layer for an app that
-already knows what it wants; an AI agent that has to discover the surface first
-should use the MCP server in the next section, which is generated from this
-same manifest.
-
-```js
-avatar.send({ type: 'state', state: 'listening' })
-avatar.send({ type: 'tool.start', name: 'kb.search', args: '{ q: "hours" }', result: '2 docs' })
-avatar.send({ type: 'identity', seed: 'customer:4821', kind: 'customer', age: 67 })
-avatar.addEventListener('avatar-event', (e) => console.log(e.detail.name))
-
-avatar.send({ type: 'manifest' })   // every command, discoverable at runtime
-```
-
-18 commands, 8 events. Unknown commands come back as an `error` event rather
-than throwing — a control channel that can crash the UI is not a control
-channel.
-
-## Letting an AI agent drive it — MCP
-
-The control API assumes an app that already knows what it wants. An AI agent
-does not: it has to DISCOVER what is possible and then call it. That is exactly
-what MCP is for, and `MANIFEST` was already the right shape — every command
-carries a doc string and typed arguments, so the MCP tool list is **generated
-from it** rather than written twice, and cannot drift from the implementation.
-
-An avatar lives in a browser; MCP servers and CLIs are processes. One bridge
-carries commands across that gap, and every front door speaks to it:
-
-```
-  MCP server ─┐
-  CLI        ─┼─► bridge (ws://localhost:4332) ─► the page ─► avatar.send()
-  your code  ─┘
-```
-
-Three terminals:
-
-```bash
-bun run bridge                       # the wire, on :4332
-bun run dev                          # the lab, on :4330
-open http://localhost:4330/?bridge   # ?bridge makes the page join
-```
-
-Then, from a shell:
-
-```bash
-bun bin/avatar.js avatars                       # who is connected
-bun bin/avatar.js state listening
-bun bin/avatar.js act.play id=wink
-bun bin/avatar.js tool.start name=kb.search     # scans, by itself
-bun bin/avatar.js identity seed=agent:reception-01 color=#16A34A age=34
-```
-
-Or register it with any MCP client:
-
-```bash
-claude mcp add avatar -- bun /absolute/path/to/avatar-motion/mcp/server.js
-```
-
-The agent then sees 18 tools — `avatar_state`, `avatar_act_play`,
-`avatar_tool_start`, `avatar_identity`, `avatar_list` and the rest — each with
-its enum values filled in, so it can pick a real eye act rather than guess a
-string. `avatar_list` reports which avatars are connected, which is the first
-thing an agent should call.
-
-The server speaks JSON-RPC over stdio and is hand-rolled rather than pulled from
-the SDK: the surface an agent needs is four methods, and this project has no
-dependencies at all — worth keeping for something you clone and run.
-
-**`?bridge` is opt-in.** A page that has not asked for it opens no socket. An
-avatar that silently accepts commands from a local port is a surprise nobody
-wants in a product build.
-
-## Age
-
-Age is real data a CRM usually has, and it is a stronger signal for how someone
-looks and moves than any random seed. Pass it and it drives greying, reading
-glasses (presbyopia is near-universal past 45), which clothes are likely, and
-how fast the person moves. Leave it out and the seed decides everything, exactly
-as before.
-
-## Production behaviour
-
-This is the part that decides whether it can go in a real list view.
-
-- **One `requestAnimationFrame` for the whole page.** Fifty avatars share one
-  loop (`src/core/ticker.js`). Fifty independent loops is the usual way this
-  kind of thing gets shipped and the usual reason it has to be removed again.
-- **Fixed 120 Hz physics.** Springs settle identically on a 60 Hz laptop and a
-  144 Hz monitor. Drawing still happens once per real frame.
-- **Off-screen avatars stop**, via one shared `IntersectionObserver`, and give
-  back their WebGL surface.
-- **A hidden tab stops**, and resumes without simulating the elapsed time — no
-  lurch when you come back.
-- **`prefers-reduced-motion` is obeyed**, and *watched*, not read once: turning
-  it on mid-session calms every avatar and drops the shader.
-- **The shader is capped**: at most 3 live WebGL contexts on the page, 144×144
-  each, 30 fps, skipped when nothing is happening. Worst case for the whole
-  page is about 1.9 megapixels a second. No WebGL, no context free, or reduced
-  motion → the avatar simply renders without an aura.
-- **Texture is a tiled image, not an SVG filter.** A filter re-runs whenever
-  anything inside it changes, and this avatar has a face moving in it sixty
-  times a second.
-
-## How the merge works
-
-Humation's eyes are two small paths baked into the head drawing. **Every one of
-the 24 head parts draws them at exactly the same two boxes** — that is the fact
-the whole thing rests on. So:
-
-1. **Compose** the person from the seed.
-2. **Cut** those two paths out, guarded by a bounding-box check. If the asset
-   pack ever changes, the build throws instead of silently deleting a jaw.
-3. **Measure** what was cut, plus the skin path, to recover the sphere the
-   engine needs: a centre, a radius, and each eye's resting longitude.
-4. **Project** the generated eye rings onto that sphere every frame.
-5. **Draw** — `d` plus a transform, above the rest of the figure.
-
-### Ported from the gist unchanged
-
-- blink curve — 320 ms, 42 % closing / 58 % opening, floor 0.04
-- morph spring — `v += (−2ζωv − ω²(x − target)) dt`
-- projection — `longitude = asin(offset/radius) + turn`, `scaleX = cos(long)/cos(long₀)`
-- gaze clamp — the pointer is limited to ±0.6 before scaling
-- `POOLS`, `BLINK`, `EXPR_CADENCE` — all 39 state rows
-
-### Changed on purpose
-
-- **Expressions are generated, not stored.** The gist ships ~110 KB of raw eye
-  coordinates. Here each face is eight numbers per eye, sampled to the same
-  48-point ring. Resolution-independent, so the same face fits a 4.5-unit
-  Humation head as well as a 49-unit blob, and a new expression is one line.
-- **The gist's 18 blob silhouettes become Humation's part slots** — 24 heads ×
-  8 bodies × 8 bottoms × 43 items × 3 glasses.
-- **A `MOTION` table** — breathing, sway, nodding, self-directed gaze. A person
-  needs them; a floating blob did not.
-- **A mouth.** Humation draws none. Four numbers per expression, built the same
-  way as the eyes, plus a talk oscillation for the speaking states.
-- **A mount animation**, so an avatar arrives instead of appearing.
-
-### What makes the motion read as real
-
-Ordered by how much each one changes the impression, not by what it costs.
-
-- **Saccades, not glides.** Real eyes are still, then jump, then still. A
-  saccade takes 30–80 ms and its duration scales with distance. Smoothly
-  gliding eyes are the single most uncanny thing an avatar can do, and this is
-  the biggest change of the lot (`src/motion/gaze.js`).
-- **Microsaccades and drift.** During a fixation the eye is never actually
-  still — a ~0.02 tremor every few hundred milliseconds, plus a slow drift.
-- **The head lags the eyes.** A look starts with the eyes; the head follows on
-  a spring and the eyes then roll back towards centre. That lag is what makes a
-  glance read as intentional rather than as two eyes sliding in a mask.
-- **Blinks that are not a metronome.** Intervals are clustered, not uniform.
-  One in seven is a double, one in six is a half-lid, and a large saccade drags
-  a blink along with it, as it does in people.
-- **Breath is not a sine.** Quick inhale, a catch at the top, a slower exhale, a
-  pause at the bottom — and the weight shift runs on a completely different
-  clock, so the two never line up into one obvious loop.
-- **Lids follow the gaze.** Looking down lowers the upper lid. Without it a
-  downward glance reads as a stare.
-- **Squash and stretch.** A hop stretches on the way up and squashes on landing,
-  and the contact shadow tightens as the figure leaves the ground.
-- **Every face is its own.** Eye spacing, size, aspect, corner tilt, mouth
-  height, lid weight, blink rate and fidget level are all drawn from the seed.
-  Two avatars sharing a hairstyle no longer share a face.
-
-### The look pass
-
-Humation paints every shape with one of five CSS custom properties. That is the
-whole lever — swap those five paints and every part of every avatar changes at
-once, while the engine's live recolouring keeps working because the gradients
-are still derived from the property it animates.
-
-- **One light across the whole figure.** The gradients are in *user* space, so
-  head, body and legs are lit by one light instead of each shape shading itself.
-  That single change is most of the difference between vector art and
-  illustration.
-- **Shading is duplicated paths.** Occlusion under the hairline, a rim on the
-  far edge. Cheaper than a filter: no offscreen buffer, and the gradient maps to
-  the path's own bounding box for free.
-- **Texture is generated once into a canvas** at load — paper grain, cloth
-  twill, hair strands — and tiled as an ordinary image.
-- **A contact shadow.** Nothing in the source art sits on anything, which is
-  most of why a flat avatar reads as a sticker.
-
-### Agent vs person
-
-Both run the same engine. `KIND_PROFILE` in `src/states.js` decides how far it
-may go.
-
-| | `customer` | `agent` |
-|---|---|---|
-| head turn | eyes slide on the face, capped at ±14°, never narrow | full sphere; eyes pass behind the head |
-| eye shape | as drawn | 1.22 × 1.62 — taller, more cartoon |
-| spin | no | yes |
-| tool calls | no | glasses on, bubble out, outfit colour runs |
-
-### Glasses
-
-Two of the three glasses parts are `none`, so most avatars have none and the
-eyes sit exactly where Humation drew them. When glasses *are* worn the lenses
-are opaque white discs that would swallow any expression wider than the baked
-dots — so the eye is re-anchored to the lens centre and sized to sit inside it.
-The glasses stay as drawn; the face still animates through them.
-
-### The companion animal
-
-Twelve of the item parts are cats, each with two eyes drawn as a matched pair of
-circles. Those get wrapped and blinked on their own clock — never in step with
-the person — and they nap when the person is asleep. Items whose eyes are paths
-(duck, frog, fox mask) are left alone: a wrong guess would animate a random part
-of the drawing, which is worse than a still duck.
-
-### Emblems
-
-A symbol floats over the head saying what the avatar is doing — in place of the
-Humation hat or pet, because two things competing for that space just read as
-clutter. Two interchangeable sets, same meanings and same motion:
-
-- `emblem="icon"` — **30 icons drawn in `src/render/icons.js`**, composed from
-  shared primitives so one stroke width governs the whole set.
-- `emblem="auto"` — system emoji, mostly symbols rather than faces. The avatar
-  already has a face doing the acting; a second face above it splits the
-  reader's attention and the two rarely agree.
-
-The icons are drawn rather than vendored on purpose. A licence survey of the
-usual sets came back with two clean options and a longer list to avoid:
-
-| Safe, no visible credit | Avoid, and why |
-|---|---|
-| **Phosphor** (MIT), **Fluent Emoji** (MIT), Tabler, Lucide, Heroicons, Bootstrap Icons, Iconoir, Material Symbols (Apache-2.0), `line-md` + `svg-spinners` (MIT, self-animating SVG) | **JoyPixels Free** — personal use only, no commercial use · **OpenMoji** — CC BY-SA, viral share-alike on any recolour · **Solar**, **Font Awesome Free**, **Twemoji artwork** — CC BY, visible credit required · **Remix Icon** — licence changed Jan 2026, npm metadata still says Apache-2.0 · **Animate.css** — Hippocratic 2.1, not permissive · **css-loaders.com** — no licence granted at all · any "Material animated icons" Lottie pack — Google publishes no such thing |
-
-Phosphor and Fluent Emoji would both have worked. Neither would have *matched*
-the avatar's line. Twenty-odd simple glyphs is a couple of hundred lines, and
-drawing them here means the project carries no asset licence at all.
+One `requestAnimationFrame` drives every avatar on the page. Off-screen avatars
+and hidden tabs stop completely. The simulation runs at a fixed 120 Hz step,
+separate from drawing, so a slow frame changes nothing about the motion.
+`prefers-reduced-motion` is honoured. The WebGL aura is pooled three deep, and
+any avatar can decline it with `no-aura`.
 
 ## Files
 
 | Path | What |
 |---|---|
 | `index.html` | the landing page |
-| `lab.html` | the lab — stage, drive, states, faces, emblems, crowd, explanation |
-| `src/site.js` | wiring for the landing page only |
-| `src/variation.js` | one definition of "a random avatar", shared by the site, the lab and the control API |
-| `src/humation.js` | compose, cut the eyes, measure the sphere, lenses, pets, the look pass |
-| `src/expressions.js` | parametric eye and mouth rings, 25 expressions |
-| `src/states.js` | pools, cadences, body motion, kind profiles, tool scripts |
+| `lab.html` | the lab |
+| `src/avatar-motion.js` | the `<avatar-motion>` element |
+| `src/humation.js` | compose, cut the eyes, measure the sphere, the look pass |
 | `src/engine.js` | the simulation and the draw pass |
-| `src/core/ticker.js` | one rAF for the page, fixed timestep, visibility, reduced motion |
-| `src/motion/gaze.js` | saccades, fixations, microsaccades, head coupling |
-| `src/motion/body.js` | breath curve, blink variety, weight shift |
-| `src/render/textures.js` | canvas-generated grain, weave and hair; the shared `<defs>` |
-| `src/render/shading.js` | repaint to gradients, occlusion, rim, ground shadow, grain |
-| `src/render/icons.js` | the 30-icon emblem set, composed from primitives |
-| `src/render/emblem.js` | state → symbol, and each symbol's own motion |
-| `src/gl/aura.js` | the WebGL aura, its shader, and the context pool |
-| `src/avatar-motion.js` | the `<avatar-motion>` custom element |
-| `src/demo.js` | the scripted hands-free run |
-| `src/lab.js` | wiring for the lab page only |
-| `tools/bake-humation.js` | rebuilds `vendor/humation.bundle.js` |
-| `tools/serve.js` | the static dev server |
-
-## Credits
-
-- **Artwork** — every head, body, bottom, item and pair of glasses is
-  [Humation](https://github.com/endo-yusuke/humation) (MIT), vendored
-  unmodified under `vendor/@humation/core` and
-  `vendor/@humation/assets-humation-1`, with its licence files intact.
-- **Eye motion** — a port of the engine from a public gist by
-  [Jérémy Perret](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
-  (MIT), in `src/motion/sphere.js`.
-- **Everything else** — the merge itself, the icon set, the textures, the
-  shader, the speech engine and the control API — is original to this
-  project.
-
-Full detail, including exactly which files were ported and what was changed
-on purpose: [`NOTICE.md`](NOTICE.md).
+| `src/states.js` | 39 states: pools, cadences, body motion, tool scripts |
+| `src/expressions.js` | parametric eye and mouth rings |
+| `src/motion/` | gaze, body, sphere, eye acts |
+| `src/render/` | textures, shading, icons, emblems, skulls |
+| `src/control.js` | one command set, shared by the page, the CLI and MCP |
+| `src/variation.js` | one definition of "a random avatar" |
+| `src/speech.js` | the mouth, from a waveform |
+| `src/sound.js` | the tap heard when a face is made |
+| `bin/avatar.js` | the CLI |
+| `mcp/server.js` | the MCP server |
+| `tools/bridge.js` | the wire between a process and a page |
+| `tools/shot.sh` | rebuilds the images above |
 
 ## Licence
 
-MIT — see [`LICENSE`](LICENSE). Third-party notices: [`NOTICE.md`](NOTICE.md).
+MIT — [`LICENSE`](LICENSE). Third-party credits in [`NOTICE.md`](NOTICE.md).

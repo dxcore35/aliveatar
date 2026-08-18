@@ -2,65 +2,20 @@
 // Emblem — the little symbol that floats over the head and says what is going
 // on, in place of the cat.
 //
-// Deliberately mostly SYMBOLS rather than face emoji. The avatar already has a
-// face doing the acting; putting a second face above it splits the reader's
-// attention and the two rarely agree. A thought cloud, a magnifier or a warning
-// triangle adds information instead of competing for it. The handful of face
-// emoji here are the ones with no good symbolic equivalent.
+// Deliberately SYMBOLS rather than faces. The avatar already has a face doing
+// the acting; putting a second face above it splits the reader's attention and
+// the two rarely agree. A thought cloud, a magnifier or a warning triangle adds
+// information instead of competing for it.
 //
-// Emoji are used rather than shipped icon artwork so the prototype carries no
-// asset licence at all. Swapping this map for an icon set later is a one-file
-// change — the mount, float and exit animation stay as they are.
+// Every symbol is drawn here, in `render/icons.js`, from primitives. Nothing is
+// a font glyph and nothing is downloaded, so the whole project stays MIT with
+// no third-party asset in it.
 // ---------------------------------------------------------------------------
-
-/** state → [glyph, how it should behave] */
-const EMBLEM = {
-  sleeping: ['💤', 'float'],
-  drowsy: ['💤', 'float'],
-  'powering-down': ['🌙', 'float'],
-  waking: ['☀️', 'pop'],
-  idle: [null, null],
-  humming: ['🎵', 'float'],
-  bored: ['💭', 'float'],
-
-  listening: ['👂', 'pulse'],
-  dictating: ['💬', 'pulse'],
-  thinking: ['💭', 'float'],
-  confused: ['❓', 'wobble'],
-  working: ['⚙️', 'spin'],
-  writing: ['✍️', 'pulse'],
-  searching: ['🔍', 'sweep'],
-  loading: ['⏳', 'wobble'],
-  progress: ['⏳', 'wobble'],
-  orbit: ['🛰️', 'spin'],
-  radar: ['📡', 'pulse'],
-  spawning: ['✨', 'pop'],
-  sending: ['📤', 'pop'],
-  receiving: ['📥', 'pop'],
-  uploading: ['⬆️', 'pulse'],
-
-  happy: ['✨', 'float'],
-  laughing: ['😂', 'shake'],
-  playful: ['🎈', 'float'],
-  celebrate: ['🎉', 'pop'],
-  proud: ['⭐', 'pulse'],
-  excited: ['⚡', 'shake'],
-  shy: ['🌸', 'float'],
-  sad: ['💧', 'float'],
-  angry: ['💢', 'shake'],
-  suspicious: ['🧐', 'wobble'],
-  scared: ['❗', 'shake'],
-  surprised: ['❗', 'pop'],
-  curious: ['❔', 'wobble'],
-  notifying: ['🔔', 'shake'],
-  alerting: ['⚠️', 'pulse'],
-  bouncing: ['🎈', 'float'],
-  dragging: ['✋', 'pulse'],
-}
 
 /**
  * The same meanings in the drawn icon set (icons.js) — same behaviours, so an
- * avatar can switch between emoji and icons without any motion changing.
+ * behaviour is named separately from the symbol, so the set can change
+ * without any motion changing.
  */
 const ICON_EMBLEM = {
   sleeping: ['sleep', 'float'],
@@ -108,49 +63,14 @@ const ICON_EMBLEM = {
 
 /**
  * @param {string} state
- * @param {'emoji'|'icon'} mode
- * @returns {[string|null, string|null]} glyph or icon name, and its behaviour
+ * @returns {[string|null, string|null]} icon name, and how it should behave
  */
-export function emblemFor(state, mode = 'emoji') {
-  return (mode === 'icon' ? ICON_EMBLEM[state] : EMBLEM[state]) || [null, null]
+export function emblemFor(state) {
+  return ICON_EMBLEM[state] || [null, null]
 }
 
-// ── Tinting an emoji ────────────────────────────────────────────────────────
-// Colour-emoji fonts ignore `color` and `-webkit-text-fill-color` entirely —
-// the glyph carries its own palette, and no CSS property will override it. The
-// one reliable way to force a colour is to take the glyph's SHAPE and repaint
-// it: draw it to a canvas, then composite a solid fill with `source-in`, which
-// keeps the alpha and replaces every colour in it.
-//
-// The result is a silhouette, so the emoji's internal detail goes — but a
-// badge at 20 % of an avatar's width was never showing that detail anyway, and
-// matching the character's own colour is worth more than the lost shading.
-const tintCache = new Map()
-
-export function tintedEmoji(glyph, color, size = 96) {
-  const key = `${glyph}|${color}|${size}`
-  const hit = tintCache.get(key)
-  if (hit) return hit
-
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = size
-  const ctx = canvas.getContext('2d')
-  ctx.font = `${Math.round(size * 0.78)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(glyph, size / 2, size / 2 + size * 0.04)
-
-  ctx.globalCompositeOperation = 'source-in'
-  ctx.fillStyle = color
-  ctx.fillRect(0, 0, size, size)
-
-  const url = canvas.toDataURL('image/png')
-  tintCache.set(key, url)
-  return url
-}
-
-/** Every glyph, for the lab's reference sheet. */
-export const EMBLEM_TABLE = EMBLEM
+/** Every symbol, for the lab's reference sheet. */
+export const EMBLEM_TABLE = ICON_EMBLEM
 
 /**
  * The emblem's own motion, evaluated per frame.

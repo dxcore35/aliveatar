@@ -2,9 +2,20 @@
   "name": "avatar-motion",
   "version": "1.0.0",
   "description": "Living avatars for AI agents and people. One seed in, one animated character out. No build step, no dependencies.",
-  "keywords": ["avatar", "web-component", "animation", "ai-agent", "voice-agent", "svg", "mcp"],
-  "homepage": "https://avatar.dxcore.store",
-  "repository": { "type": "git", "url": "git+https://github.com/dxcore35/avatar-motion.git" },
+  "keywords": [
+    "avatar",
+    "web-component",
+    "animation",
+    "ai-agent",
+    "voice-agent",
+    "svg",
+    "mcp"
+  ],
+  "homepage": "https://avatar.dxcore35.eu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dxcore35/avatar-motion.git"
+  },
   "bugs": "https://github.com/dxcore35/avatar-motion/issues",
   "license": "MIT",
   "type": "module",
@@ -16,8 +27,21 @@
     "./bridge-client": "./src/bridge-client.js",
     "./package.json": "./package.json"
   },
-  "files": ["src", "vendor", "bin", "mcp", "tools", "index.html", "lab.html", "README.md", "NOTICE.md", "LICENSE"],
-  "sideEffects": ["./src/avatar-motion.js"],
+  "files": [
+    "src",
+    "vendor",
+    "bin",
+    "mcp",
+    "tools",
+    "index.html",
+    "lab.html",
+    "README.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./src/avatar-motion.js"
+  ],
   "scripts": {
     "dev": "bun tools/serve.js",
     "start": "bun tools/serve.js",
@@ -25,7 +49,10 @@
     "bridge": "bun tools/bridge.js",
     "mcp": "bun mcp/server.js",
     "avatar": "bun bin/avatar.js",
-    "sync": "bun tools/sync-to-platform.js"
+    "sync": "bun tools/sync-to-platform.js",
+    "shots": "bash tools/shot.sh"
   },
-  "bin": { "avatar": "./bin/avatar.js" }
+  "bin": {
+    "avatar": "./bin/avatar.js"
+  }
 }

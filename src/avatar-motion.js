@@ -11,9 +11,11 @@
 //   color              agent signature colour, becomes the skin
 //   gender             'male' | 'female' | omitted
 //   state              any key of POOLS in states.js
+//   age                a number; drives greying, reading glasses and pace
+//   skull              agents only: the generated head shape
 //   head/body/bottom/item/glasses   force a Humation part by name
-//   emblem             'auto' state symbol over the head | 'item' keep the
-//                      Humation hat/pet | 'off'
+//   emblem             'icon' state symbol over the head ('auto' is a synonym)
+//                      | 'item' keep the Humation hat/pet | 'off'
 //   mouse-interactive  the eyes track the pointer (smooth pursuit)
 //   no-aura            never claim a WebGL surface
 //   flat               skip the shading and texture pass
@@ -29,7 +31,7 @@ import { buildAvatar, PARTS } from './humation.js'
 import { FaceEngine } from './engine.js'
 import { DemoDirector } from './demo.js'
 import { join, prefersReducedMotion } from './core/ticker.js'
-import { emblemFor, emblemMotion, tintedEmoji } from './render/emblem.js'
+import { emblemFor, emblemMotion } from './render/emblem.js'
 import { iconSvg } from './render/icons.js'
 import { grainTexture } from './render/textures.js'
 import { SpeechEngine } from './speech.js'
@@ -161,9 +163,6 @@ export class AvatarMotion extends HTMLElement {
     const inkBase = dark ? '#f2efe6' : built.colors.stroke
     const tintSource = kind === 'customer' ? (dark ? built.colors.hair : built.colors.stroke) : color
     this.emblemInk = mixInk(tintSource, inkBase, dark ? 0.38 : 0.55)
-    // Emoji get repainted in the character's own colour too (see tintedEmoji),
-    // lifted if the raw colour would disappear against a dark page.
-    this.emojiInk = kind === 'customer' ? this.emblemInk : dark ? liftForDark(color) : color
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -279,21 +278,16 @@ export class AvatarMotion extends HTMLElement {
 
   applyState(state, silent) {
     this.engine?.setState(state)
-    const mode = this.emblemMode === 'icon' ? 'icon' : 'emoji'
     const active = this.emblemMode === 'auto' || this.emblemMode === 'icon'
-    const [glyph, behaviour] = active ? emblemFor(state, mode) : [null, null]
+    const [glyph, behaviour] = active ? emblemFor(state) : [null, null]
     if (glyph !== this.currentEmblem) {
       this.currentEmblem = glyph
       this.emblemBehaviour = behaviour
       this.emblemLife = 0
       if (this.emblemEl) {
-        // Icons are inline SVG tinted with the avatar's ink colour so they read
-        // as part of the same drawing; emoji are just text.
-        this.emblemEl.innerHTML = !glyph
-          ? ''
-          : mode === 'icon'
-            ? iconSvg(glyph, { size: '100%', color: this.emblemInk })
-            : `<img alt="" src="${tintedEmoji(glyph, this.emojiInk)}">`
+        // Inline SVG, tinted with the avatar's ink colour, so the symbol reads
+        // as part of the same drawing rather than a sticker on top of it.
+        this.emblemEl.innerHTML = !glyph ? '' : iconSvg(glyph, { size: '100%', color: this.emblemInk })
         this.emblemEl.style.opacity = glyph ? '1' : '0'
       }
     }
@@ -419,18 +413,6 @@ export class AvatarMotion extends HTMLElement {
  * look like it was drawn by the same hand as the avatar. Emoji cannot be
  * recoloured without wrecking them, so they keep their own palette.
  */
-/** Raise a colour until it reads against a dark page, keeping its hue. */
-function liftForDark(hex) {
-  const n = parseInt(String(hex).replace('#', ''), 16)
-  const r = ((n >> 16) & 255) / 255
-  const g = ((n >> 8) & 255) / 255
-  const b = (n & 255) / 255
-  const lum = 0.299 * r + 0.587 * g + 0.114 * b
-  if (lum >= 0.5) return hex
-  const k = 0.5 / Math.max(lum, 0.06)
-  const to = (v) => Math.round(Math.min(255, v * 255 * k)).toString(16).padStart(2, '0')
-  return `#${to(r)}${to(g)}${to(b)}`
-}
 
 function mixInk(color, ink, w = 0.55) {
   const parse = (h) => {

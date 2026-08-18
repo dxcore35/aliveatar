@@ -189,7 +189,7 @@ $('btn-mic').onclick = async () => {
     micStream = null
     both((a) => a.send({ type: 'speech.stop' }))
     $('btn-mic').setAttribute('aria-pressed', 'false')
-    $('btn-mic').textContent = '🎤 Speak into it'
+    $('btn-mic').textContent = 'Speak into it'
     $('mic-level').style.width = '0%'
     return
   }
@@ -259,7 +259,7 @@ function stopEyeTour() {
   if (eyeTour) clearInterval(eyeTour)
   eyeTour = null
   $('btn-eyes').setAttribute('aria-pressed', 'false')
-  $('btn-eyes').textContent = '👁 Test eyes'
+  $('btn-eyes').textContent = 'Test eyes'
   $('demo-note').textContent = ''
   applyControls()
 }
@@ -319,7 +319,7 @@ function stopActTour() {
   $('btn-acts').setAttribute('aria-pressed', 'false')
   $('btn-acts').textContent = '▶ Play all animations'
   $('btn-eyeanim').setAttribute('aria-pressed', 'false')
-  $('btn-eyeanim').textContent = '✨ Eye animations'
+  $('btn-eyeanim').textContent = 'Eye animations'
   $('demo-note').textContent = ''
   document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-pressed', 'false'))
 }
@@ -552,10 +552,9 @@ $('iconsheet').innerHTML = ICON_NAMES.map(
 ).join('')
 
 $('emblemsheet').innerHTML = STATES.map((state) => {
-  const [icon] = emblemFor(state, 'icon')
-  const [glyph] = emblemFor(state, 'emoji')
-  if (!icon && !glyph) return ''
-  return `<div class="iconcell">${iconSvg(icon, { size: 26 })}<span class="glyph">${glyph || ''}</span><span>${state}</span></div>`
+  const [icon] = emblemFor(state)
+  if (!icon) return ''
+  return `<div class="iconcell">${iconSvg(icon, { size: 26 })}<span>${state}</span></div>`
 }).join('')
 
 // ── Crowd — infinite ────────────────────────────────────────────────────────

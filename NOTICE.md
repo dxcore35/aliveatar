@@ -1,5 +1,9 @@
 # Third-party notices
 
+Every drawn thing in this project is either Humation's artwork (MIT, credited
+below) or original to this project. No font glyph, emoji or downloaded icon is
+used as artwork anywhere, so the whole repository is MIT with nothing to carry.
+
 ## Humation — MIT
 
 Copyright (c) 2026 Humation contributors
