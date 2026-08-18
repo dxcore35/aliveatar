@@ -66,6 +66,30 @@ function currentConfig() {
   return cfg
 }
 
+// ── The accent is the avatar ────────────────────────────────────────────────
+// Every "this one is on" highlight in the lab takes its colour from whoever is
+// on the stage. It costs three custom properties and it makes the panel read as
+// part of the same object as the face above it, rather than a control surface
+// bolted to the side of one.
+function paintAccent(colour) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16))
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches
+  // A fill needs ink that survives on it; a border or a label needs a colour
+  // that survives on the PAGE. They are rarely the same colour.
+  const mix = (t, target) => {
+    const to = target === 'white' ? 255 : 0
+    return '#' + [r, g, b].map((c) => Math.round(c + (to - c) * t).toString(16).padStart(2, '0')).join('')
+  }
+  const ink = dark
+    ? (lum < 0.45 ? mix(0.42, 'white') : colour)
+    : (lum > 0.62 ? mix(0.34, 'black') : colour)
+  const root = document.documentElement.style
+  root.setProperty('--accent', colour)
+  root.setProperty('--on-accent', lum > 0.58 ? '#101010' : '#ffffff')
+  root.setProperty('--accent-ink', ink)
+}
+
 function rebuild() {
   const cfg = currentConfig()
   live.setAttribute('emblem', $('emblem').value)
@@ -103,6 +127,9 @@ function rebuild() {
   applyControls()
 
   const built = buildAvatar(cfg)
+  // An agent's signature colour IS its skin; a person has none, so the hair is
+  // the one colour that is theirs and not everybody's.
+  paintAccent(cfg.kind === 'agent' ? cfg.color : built.colors.hair)
   $('r-cut').textContent = String(built.strippedEyes)
   const sk = SKULL_SHAPES[built.skull]
   $('skull-note').textContent =
@@ -215,6 +242,11 @@ let actTour = null
 let demoTimer = 0
 
 const pickFrom = (a) => a[Math.floor(Math.random() * a.length)]
+/** A vivid spread — agents are not people and their colour says so. */
+const AGENT_PALETTE = [
+  '#3B82F6', '#16A34A', '#9333EA', '#E36F3D', '#0E7490', '#BE185D',
+  '#EAB308', '#14B8A6', '#F43F5E', '#8B5CF6', '#06B6D4', '#84CC16',
+]
 const roll = (p) => Math.random() < p
 
 /** Set a control and let its own listener do the work. */
@@ -224,6 +256,26 @@ function drive(id, value, kind = 'input') {
   if (el.type === 'checkbox') el.checked = value
   else el.value = value
   el.dispatchEvent(new Event(kind, { bubbles: true }))
+}
+
+/** Move one thing in the Who row, so it is obvious which field owns what. */
+function driveIdentity() {
+  const agent = $('kind').value === 'agent'
+  const fields = [
+    () => drive('gender', pickFrom(['', 'female', 'male'])),
+    () => drive('age', roll(0.25) ? '' : String(18 + Math.floor(Math.random() * 62))),
+    () => drive('part-head', roll(0.2) ? '' : pickFrom(PARTS.head)),
+    () => drive('part-body', roll(0.2) ? '' : pickFrom(PARTS.body)),
+    () => drive('part-bottom', roll(0.2) ? '' : pickFrom(PARTS.bottom)),
+    () => drive('part-item', roll(0.35) ? '' : pickFrom(PARTS.item)),
+    () => drive('part-glasses', roll(0.5) ? '' : pickFrom(PARTS.glasses)),
+    () => drive('kind', agent ? 'customer' : 'agent'),
+  ]
+  if (agent) {
+    fields.push(() => drive('part-skull', roll(0.25) ? '' : pickFrom(SKULL_NAMES)))
+    fields.push(() => drive('color', pickFrom(AGENT_PALETTE)))
+  }
+  pickFrom(fields)()
 }
 
 function demoBeat() {
@@ -257,7 +309,12 @@ function demoBeat() {
   if (roll(0.1) && agent) both((a) => a.spin(1))
   if (roll(0.08)) both((a) => a.remount())
   if (roll(0.3) && agent) both((a) => a.runTool(TOOL_SCRIPTS[toolIndex++ % TOOL_SCRIPTS.length], 4200))
-  if (roll(0.12)) newPerson()
+
+  // Who changes too, one field at a time. A whole new stranger every beat is
+  // just a slideshow; moving ONE dropdown and leaving the rest is what shows
+  // which dropdown did what.
+  if (roll(0.5)) driveIdentity()
+  if (roll(0.1)) newPerson()
 
   demoTimer = setTimeout(demoBeat, 1800 + Math.random() * 1800)
 }
@@ -427,12 +484,7 @@ $('btn-head').onclick = () => {
   const shapes = SKULL_NAMES
   headStep = (headStep + 1) % shapes.length
   $('part-skull').value = shapes[headStep]
-  // A vivid spread — agents are not people and their colour says so.
-  const palette = [
-    '#3B82F6', '#16A34A', '#9333EA', '#E36F3D', '#0E7490', '#BE185D',
-    '#EAB308', '#14B8A6', '#F43F5E', '#8B5CF6', '#06B6D4', '#84CC16',
-  ]
-  $('color').value = palette[Math.floor(Math.random() * palette.length)]
+  $('color').value = pickFrom(AGENT_PALETTE)
   $('seed').value = `agent:${Math.random().toString(36).slice(2, 9)}`
   for (const slot of SLOTS) $(`part-${slot}`).value = ''
   rebuild()

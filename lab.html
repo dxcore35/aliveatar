@@ -17,6 +17,7 @@
         --ink: #16170f;
         --muted: #74766b;
         --accent: #2f66e8;
+        --accent-ink: #2f66e8;
         --on-accent: #ffffff;
         --mono: ui-monospace, 'SF Mono', Menlo, monospace;
       }
@@ -28,6 +29,7 @@
           --ink: #fafaf8;
           --muted: #8a8a93;
           --accent: #6f96ff;
+          --accent-ink: #6f96ff;
           --on-accent: #0c1630;
         }
       }
@@ -53,21 +55,26 @@
       .kicker a { color: inherit; text-decoration: none; }
       .kicker a:hover { color: var(--ink); }
       header p { margin: 0; color: var(--muted); max-width: 46ch; font-size: 0.9rem; }
-      header a { color: var(--accent); }
+      header a { color: var(--accent-ink); }
       p { margin: 0; }
       .note { color: var(--muted); font-size: 0.84rem; }
       code, .mono { font-family: var(--mono); font-size: 0.82em; }
 
       /* ── stage: the subject, full width, before any control ────────── */
       .stage {
-        display: grid; gap: 18px; justify-items: center;
-        padding: 30px 24px 32px; margin-bottom: 34px;
+        display: grid; gap: 14px; justify-items: center;
+        padding: 20px 20px 22px; margin-bottom: 22px;
         border: 1px solid var(--line); border-radius: 22px; background: var(--raised);
       }
-      .stage-avatars {
-        display: grid; grid-template-columns: repeat(2, minmax(0, 300px));
-        gap: 22px; width: 100%; justify-content: center;
+      .stage-row {
+        display: flex; gap: 26px; align-items: center; justify-content: center;
+        flex-wrap: wrap; width: 100%;
       }
+      .stage-avatars { display: grid; grid-template-columns: repeat(2, 200px); gap: 14px; }
+      .stage-side { display: grid; gap: 12px; justify-items: start; max-width: 480px; }
+      .stage-side .status { justify-content: flex-start; }
+      .stage-side .actions { justify-content: flex-start; }
+      .stage-side .stage-note { text-align: left; min-height: 0; }
       .figure { display: grid; gap: 9px; justify-items: center; }
       .figure > .box { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
       /* Agents carry no background of their own, so the stage supplies the page
@@ -84,17 +91,20 @@
       }
       .status b { color: var(--ink); font-weight: 500; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
-      .stage-note { text-align: center; max-width: 54ch; min-height: 1.3em; }
+      .stage-note { text-align: center; max-width: 54ch; }
       .meter { width: 120px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
-      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent); transition: width 60ms linear; }
+      .meter i { display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent-ink); transition: width 60ms linear; }
 
       /* ── two columns below: identity on the left, the work on the right */
-      .shell { display: grid; grid-template-columns: minmax(270px, 0.72fr) minmax(460px, 1.6fr); gap: 34px; align-items: start; }
+      .shell { display: grid; gap: 22px; }
+      .who { width: 100%; border-top: 1px solid var(--line); padding-top: 16px; }
+      .who .grid2 { grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 9px; }
+      .who .note { display: none; }
       .rail { position: sticky; top: 20px; display: grid; gap: 26px; }
 
       /* A panel is a label and a hairline, not a box. */
-      .panel { display: grid; gap: 13px; }
-      .panel + .panel { border-top: 1px solid var(--line); padding-top: 22px; }
+      .panel { display: grid; gap: 10px; }
+      .panel + .panel { border-top: 1px solid var(--line); padding-top: 16px; }
       h3 {
         margin: 0; font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
         letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
@@ -103,8 +113,8 @@
       /* ── controls ──────────────────────────────────────────────────── */
       .row { display: flex; gap: 8px; flex-wrap: wrap; }
       button, select, input[type='text'] {
-        font: inherit; font-size: 0.86rem; color: var(--ink); background: transparent;
-        border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+        font: inherit; font-size: 0.78rem; color: var(--ink); background: transparent;
+        border: 1px solid var(--line); border-radius: 9px; padding: 6px 9px;
         transition: border-color 0.14s, color 0.14s, background 0.14s;
       }
       button { cursor: pointer; }
@@ -114,21 +124,22 @@
         background: var(--accent); border-color: var(--accent); color: var(--on-accent);
       }
       input[type='text'], select { background: var(--raised); }
-      input[type='range'] { width: 100%; accent-color: var(--accent); }
-      label.control { display: grid; gap: 6px; }
-      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.82rem; color: var(--muted); }
-      .control-head output { color: var(--accent); font-family: var(--mono); font-size: 0.76rem; }
-      .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.86rem; }
-      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      /* Four columns, not five: the label is what you read, so give it room. */
-      .grid5 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-      .grid5 button { padding: 9px 8px; font-size: 0.74rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .grid3 button { padding: 10px 8px; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      input[type='range'] { width: 100%; height: 14px; accent-color: var(--accent-ink); }
+      label.control { display: grid; gap: 3px; }
+      .control-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted); }
+      .control-head output { color: var(--accent-ink); font-family: var(--mono); font-size: 0.76rem; }
+      .switch { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.78rem; }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+      /* Fill the width. Forty-one expressions on one screen beats four tidy
+         columns you have to scroll. */
+      .grid5 { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; }
+      .grid5 button { padding: 5px 8px; font-size: 0.68rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 4px; }
+      .grid3 button { padding: 6px 8px; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .chips { display: flex; flex-wrap: wrap; gap: 4px; }
       .chips button {
-        display: inline-flex; align-items: center; gap: 7px;
-        border-radius: 999px; padding: 6px 12px; font-size: 0.75rem;
+        display: inline-flex; align-items: center; gap: 5px;
+        border-radius: 999px; padding: 4px 9px; font-size: 0.68rem;
         font-family: var(--mono); color: var(--muted);
       }
       .chips button svg { flex: none; opacity: 0.7 }
@@ -143,13 +154,17 @@
         font-size: 0.92rem;
       }
       .tab:hover { color: var(--ink); border-color: transparent; }
-      .tab[aria-selected='true'] { border-bottom-color: var(--accent); color: var(--ink); background: transparent; }
+      .tab[aria-selected='true'] { border-bottom-color: var(--accent-ink); color: var(--ink); background: transparent; }
       .tab-panel[hidden] { display: none; }
-      .tab-panel { display: grid; gap: 26px; padding-top: 24px; }
-      .tab-panel > .panel + .panel { border-top: 1px solid var(--line); padding-top: 24px; }
+      /* The four knob panels are short; side by side they fit on one screen
+         with the avatars still visible above them. */
+      .knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 26px; }
+      .knobs > .panel + .panel { border-top: 0; padding-top: 0; }
+      .tab-panel { display: grid; gap: 18px; padding-top: 18px; }
+      .tab-panel > .panel + .panel { border-top: 1px solid var(--line); padding-top: 16px; }
 
-      .facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
-      .fact { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 11px; color: var(--muted); font-size: 0.8rem; }
+      .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px; }
+      .fact { background: var(--raised); border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; color: var(--muted); font-size: 0.7rem; }
       .fact code { display: block; color: var(--ink); margin-bottom: 4px; overflow-wrap: anywhere; }
 
       /* Tight on purpose: fifty faces at once is the point, so the gap is the
@@ -183,7 +198,8 @@
 
       <!-- ── Stage: the subject, full width, before any control ──────── -->
       <section class="stage">
-        <div class="stage-avatars">
+        <div class="stage-row">
+          <div class="stage-avatars">
           <figure class="figure">
             <div class="box theme-dark" id="box-live"></div>
             <figcaption>dark</figcaption>
@@ -194,7 +210,8 @@
           </figure>
         </div>
 
-        <p class="status">
+          <div class="stage-side">
+            <p class="status">
           <span>state <b id="r-state">idle</b></span>
           <span>expr <b id="r-expr">00</b></span>
           <span>turn <b id="r-turn">0&deg;</b></span>
@@ -203,69 +220,78 @@
           <span>animating <b id="r-active">0</b>/<b id="r-total">0</b></span>
           <span>shaders <b id="r-aura">0</b>/3</span>
         </p>
-
-        <div class="actions">
+            <div class="actions">
           <button class="primary" id="btn-demo" aria-pressed="false">Auto demo</button>
           <button id="btn-reset">Reset</button>
           <button id="btn-mic" aria-pressed="false">Speak into it</button>
           <div class="meter" aria-hidden="true"><i id="mic-level"></i></div>
         </div>
+            <p class="note stage-note" id="demo-note"></p>
+            <p class="note stage-note" id="mic-note"></p>
+          </div>
+        </div>
 
-        <p class="note stage-note" id="demo-note"></p>
-        <p class="note stage-note" id="mic-note"></p>
+        <section class="panel who">
+          <h3>Who</h3>
+          <div class="grid2">
+            <label class="control">
+              <span class="control-head"><span>Seed</span></span>
+              <input type="text" id="seed" value="agent:reception-01" />
+            </label>
+            <label class="control">
+              <span class="control-head"><span>Kind</span></span>
+              <select id="kind">
+                <option value="agent">agent — AI mascot</option>
+                <option value="customer">customer — person</option>
+              </select>
+            </label>
+            <label class="control">
+              <span class="control-head"><span>Agent colour</span></span>
+              <input type="color" id="color" value="#3B82F6" style="height:36px;padding:2px" />
+            </label>
+            <label class="control">
+              <span class="control-head"><span>Gender</span></span>
+              <select id="gender">
+                <option value="">unset</option>
+                <option value="female">female</option>
+                <option value="male">male</option>
+              </select>
+            </label>
+            <label class="control">
+              <span class="control-head"><span>Age</span></span>
+              <input type="text" id="age" placeholder="from seed" inputmode="numeric" />
+            </label>
+          </div>
+          <p class="note" id="kind-note"></p>
+          <div class="grid2" id="part-pickers"></div>
+          <div class="row">
+            <button id="btn-random">Random person</button>
+            <button id="btn-head" class="primary">New head + colours</button>
+          </div>
+          </section>
       </section>
 
       <div class="shell">
-        <div class="rail">
-          <section class="panel">
-            <h3>Who</h3>
-            <div class="grid2">
-              <label class="control">
-                <span class="control-head"><span>Seed</span></span>
-                <input type="text" id="seed" value="agent:reception-01" />
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Kind</span></span>
-                <select id="kind">
-                  <option value="agent">agent — AI mascot</option>
-                  <option value="customer">customer — person</option>
-                </select>
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Agent colour</span></span>
-                <input type="color" id="color" value="#3B82F6" style="height:36px;padding:2px" />
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Gender</span></span>
-                <select id="gender">
-                  <option value="">unset</option>
-                  <option value="female">female</option>
-                  <option value="male">male</option>
-                </select>
-              </label>
-              <label class="control">
-                <span class="control-head"><span>Age</span></span>
-                <input type="text" id="age" placeholder="from seed" inputmode="numeric" />
-              </label>
-            </div>
-            <p class="note" id="kind-note"></p>
-            <div class="grid2" id="part-pickers"></div>
-            <div class="row">
-              <button id="btn-random">Random person</button>
-              <button id="btn-head" class="primary">New head + colours</button>
-            </div>
-          </section>
-        </div>
-
-        <!-- ── Content rail ────────────────────────────────────────────── -->
         <main>
           <div class="tabs" role="tablist">
             <button class="tab" role="tab" aria-selected="true" data-tab="drive">Drive</button>
-            <button class="tab" role="tab" aria-selected="false" data-tab="states">States</button>
             <button class="tab" role="tab" aria-selected="false" data-tab="crowd">Crowd</button>
           </div>
 
           <section class="tab-panel" id="tab-drive" role="tabpanel">
+            <section class="panel">
+              <h3>39 states</h3>
+              <div id="state-groups" style="display:grid;gap:12px"></div>
+            </section>
+            <section class="panel">
+              <h3 id="sd-title">idle</h3>
+              <p class="note" id="sd-note"></p>
+              <div class="facts">
+                <div class="fact"><code id="sd-pool">—</code>expression pool</div>
+                <div class="fact"><code id="sd-expr">—</code>expression change</div>
+                <div class="fact"><code id="sd-blink">—</code>blink cadence</div>
+                <div class="fact"><code id="sd-motion">—</code>body motion</div>
+              </div>
             <section class="panel">
               <h3>Expression</h3>
               <div class="grid5" id="expr-grid"></div>
@@ -275,6 +301,7 @@
               </label>
             </section>
 
+            <div class="knobs">
             <section class="panel">
               <h3>Eye animations</h3>
               <p class="note">
@@ -351,27 +378,7 @@
               <div class="switch"><label for="auto-motion">Breathe, sway, nod, wander</label><input type="checkbox" id="auto-motion" checked /></div>
               <p class="note">A blink takes 320 ms: 42 % closing, 58 % opening, never fully flat (4 % floor).</p>
             </section>
-          </section>
-
-          <section class="tab-panel" id="tab-states" role="tabpanel" hidden>
-            <section class="panel">
-              <h3>39 states</h3>
-              <p class="note">
-                A state is not one face. It names a pool of expressions, how often
-                to swap between them, how often to blink, and how the body moves.
-              </p>
-              <div id="state-groups" style="display:grid;gap:12px"></div>
-            </section>
-            <section class="panel">
-              <h3 id="sd-title">idle</h3>
-              <p class="note" id="sd-note"></p>
-              <div class="facts">
-                <div class="fact"><code id="sd-pool">—</code>expression pool</div>
-                <div class="fact"><code id="sd-expr">—</code>expression change</div>
-                <div class="fact"><code id="sd-blink">—</code>blink cadence</div>
-                <div class="fact"><code id="sd-motion">—</code>body motion</div>
-              </div>
-            </section>
+            </div>
           </section>
 
           <section class="tab-panel" id="tab-crowd" role="tabpanel" hidden>
