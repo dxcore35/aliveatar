@@ -665,7 +665,10 @@ function newPerson(opts) {
 function randomiseEverything() {
   setDemo(false)
   setFaces(false)
-  fadeSwap(() => {
+  // No fade. The demo dissolves between people because it changes on its own
+  // and a hard cut would look like a glitch. This one is a button: you pressed
+  // it, so the answer belongs on screen now, not in a quarter of a second.
+  ;(() => {
     newPerson()
     const state = pickFrom(STATES)
     both((a) => a.setState(state))
@@ -686,7 +689,7 @@ function randomiseEverything() {
     drive('auto-blink', roll(0.9))
     drive('auto-motion', roll(0.9))
     drive('emblem', pickFrom(['icon', 'item', 'off']))
-  })
+  })()
 }
 $('btn-random').onclick = randomiseEverything
 

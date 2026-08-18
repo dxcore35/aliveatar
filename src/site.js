@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 import './avatar-motion.js'
 import { randomVariation, applyVariation } from './variation.js'
-import { tap, enableSound, disableSound, soundOn, whenArmed } from './sound.js'
+import { tap } from './sound.js'
 
 const $ = (id) => document.getElementById(id)
 
@@ -38,24 +38,12 @@ cmd.addEventListener('click', async () => {
 })
 
 // ── sound ───────────────────────────────────────────────────────────────────
-// Off until asked. A page that starts making noise on its own is rude, and a
-// browser blocks it anyway until the visitor has clicked something — so the
-// click on this button is both the permission and the gesture.
-const soundBtn = $('sound')
-function paintSound() {
-  const on = soundOn()
-  soundBtn.setAttribute('aria-pressed', String(on))
-  soundBtn.setAttribute('aria-label', on ? 'Sound on' : 'Sound off')
-  $('sound-glyph').innerHTML = on ? '&#9835;' : '&#9834;'
-}
-soundBtn.addEventListener('click', () => {
-  if (soundOn()) disableSound()
-  else enableSound()
-  paintSound()
-})
-// Sound starts itself on the first click anywhere, so the button has to catch
-// up on its own rather than wait to be pressed.
-whenArmed(paintSound)
+// On. There is no switch.
+//
+// A browser will not start audio before a gesture, but it does not care WHICH
+// gesture — so the first touch anywhere on the page arms it (see sound.js).
+// The taps are quiet and they only fire when a face passes, so there is
+// nothing here worth asking permission for twice.
 
 // ── the stream ──────────────────────────────────────────────────────────────
 const stage = $('stage')
