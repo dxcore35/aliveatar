@@ -4,8 +4,11 @@
     {
       "name": "avatar-motion",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["tools/serve.js"],
-      "port": 4321
+      "runtimeArgs": [
+        "tools/serve.js"
+      ],
+      "port": 4330,
+      "autoPort": false
     }
   ]
 }
