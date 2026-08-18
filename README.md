@@ -18,7 +18,7 @@ item and pair of glasses comes from
 unmodified. The eye motion is ported from a
 [public gist](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
 by Jérémy Perret (MIT). Everything added here happens at runtime and never edits
-the art. Full credits: [`NOTICE.md`](NOTICE.md).
+the art. Both licences are in [`LICENSE`](LICENSE).
 
 ## Install
 
@@ -188,4 +188,4 @@ not animated like a person — is in [`docs/ENGINE.md`](docs/ENGINE.md).
 
 ## Licence
 
-MIT — [`LICENSE`](LICENSE). Third-party credits in [`NOTICE.md`](NOTICE.md).
+MIT — [`LICENSE`](LICENSE), third-party credits included.

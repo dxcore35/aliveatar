@@ -171,7 +171,7 @@ Two clearly different kinds of "licence risk" showed up across these fourteen ca
    - Nouns: `animals.ts` from the same package (4,415 bytes, ≈350 words, MIT) to pair with the adjectives, giving a two-word agent-name space in the hundreds of thousands.
    - People: `names.ts` from the same package (59,826 bytes, ≈4,900 real first names, MIT) merged into the existing `FEMALE`/`MALE` arrays as an "everyone else" pool alongside the hand-picked Slovak-weighted core — the Slovak names stay hand-curated because no candidate here supplies them.
    - Total added payload: **≈80 KB** of plain word-list data, zero new runtime dependencies, same `hash(seed) >>> shift % list.length` mechanism already in `names.js`.
-2. **Add a NOTICE.md entry**, matching this project's existing attribution style (see the "Humation — MIT" and "bloub — MIT" sections already in `NOTICE.md`):
+2. **Add a credit to `LICENSE`**, matching the style of the Humation and bloub entries already there:
    ```
    ## unique-names-generator word lists — MIT
 
@@ -184,7 +184,7 @@ Two clearly different kinds of "licence risk" showed up across these fourteen ca
 
    Upstream: https://github.com/andreasonny83/unique-names-generator
    ```
-3. **Optionally, a second flavour for agents**: extract the Moby/Docker `left`/`right` arrays (Apache-2.0, ≈5 KB once stripped of Go syntax) as a togglable "technical" agent-name style alongside the "silly" one, with its own NOTICE.md entry crediting moby/moby.
+3. **Optionally, a second flavour for agents**: extract the Moby/Docker `left`/`right` arrays (Apache-2.0, ≈5 KB once stripped of Go syntax) as a togglable "technical" agent-name style alongside the "silly" one, with its own `LICENSE` credit for moby/moby.
 
 ### If the goal is specifically "reach one million distinct names" with the hand-rolled approach alone
 
@@ -201,4 +201,4 @@ The current formula is `len(AGENT_NAMES) × len(AGENT_TAGS)` for agents and `(le
 - GitHub repository/licence/contents APIs (`gh api repos/<owner>/<repo>`, `.../license`, `.../contents/<path>`) for: `moby/moby`, `glitchdotcom/friendly-words`, `andreasonny83/unique-names-generator`, `hackerb9/ssa-baby-names`, `jonroig/usBabyNames.js`, `hadley/babynames`.
 - Direct read of `moby/moby`'s `internal/namesgenerator/names-generator.go` source (word-count verified programmatically).
 - Behind the Name's own Data Access page (behindthename.com/api) for its CC-BY-SA terms.
-- Existing project files read for context: `src/names.js`, `NOTICE.md`.
+- Existing project files read for context: `src/names.js`, `LICENSE`.

@@ -20,4 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Third-party components are listed in NOTICE.md and keep their own licences.
+
+--------------------------------------------------------------------------------
+
+Third-party components keep their own licences.
+
+Humation (MIT) — every head, body, bottom, item and pair of glasses. Vendored
+unmodified under vendor/@humation/, each package with its own LICENSE.md.
+https://github.com/endo-yusuke/humation
+
+bloub by Jeremy Perret (MIT) — src/motion/sphere.js and src/motion/eyeacts.js
+port its eye engine: the head frame, the per-eye tangent frame off the sphere,
+the blink as a screen-space squash, and the noise drift.
+https://github.com/jeremy-prt/bloub
