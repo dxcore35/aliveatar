@@ -13,6 +13,20 @@ real SVGs fetched live from the DiceBear API and inspected in the browser.
 
 ---
 
+> **Decision, 2026-08-18 — the frame stays a portrait.**
+>
+> The avatar is drawn 104 units tall and shown through an 88-unit square, so
+> everything below the chest is outside the frame. That crop is deliberate and
+> is not changing.
+>
+> What follows from it: **anything in the `bottom` slot is invisible.** Swim
+> shorts, the skirts, the trousers — none of them can be seen at the size this
+> is used. Drawing them is wasted work. The proposals below that belong to
+> `bottom` are kept for the record but should not be built.
+>
+> Still worth drawing: **tops** (a bikini top DOES show), **hairstyles**, and
+> **items**. Those are all inside the frame.
+
 ## 1. What the existing parts actually are
 
 The friendly names below are exactly what the app uses: `PARTS` in
