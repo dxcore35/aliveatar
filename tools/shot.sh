@@ -14,7 +14,6 @@ shot() { "$CHROME" --headless=new --disable-gpu --hide-scrollbars \
 
 shot hero.png      1440,860  11000 "http://localhost:4330/"
 shot lab.png       1440,1210  9000 "http://localhost:4330/lab.html"
-shot states.png    1280,955   7000 "http://localhost:4330/tools/shots/states.html"
-shot tool-call.png 1180,440   9000 "http://localhost:4330/tools/shots/tool.html"
+shot gallery.png   1000,548   9000 "http://localhost:4330/tools/shots/gallery.html"
 command -v sips >/dev/null && sips -Z 1400 "$ROOT"/docs/*.png >/dev/null
-echo "docs/hero.png docs/lab.png docs/states.png docs/tool-call.png"
+echo "docs/hero.png docs/lab.png docs/gallery.png"

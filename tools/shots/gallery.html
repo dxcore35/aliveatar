@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>gallery</title>
+<!--
+  The gallery, on its own, for the README.
+
+  It builds its faces with the SAME `randomVariation` the lab's gallery uses,
+  so this cannot drift into a prettier lie about what the gallery holds. The
+  only difference is the column count: the lab fits as many as the window
+  allows, and a README wants a fixed ten.
+-->
+<style>
+  :root { color-scheme: dark }
+  body { margin:0; background:#0a0a0b; padding:26px; }
+  /* Ten columns, and the tile takes whatever width that leaves. */
+  .gallery { display:grid; grid-template-columns:repeat(10,1fr); gap:6px; }
+  .box { width:100%; aspect-ratio:1; border-radius:12px; overflow:hidden;
+         border:1px solid #232327; background:#14161b; }
+  avatar-motion { width:100%; height:100%; display:block }
+</style></head><body>
+<div class="gallery" id="g"></div>
+<script type="module">
+import '/src/avatar-motion.js'
+import { randomVariation, applyVariation } from '/src/variation.js'
+
+const ROWS = 5
+const g = document.getElementById('g')
+for (let i = 0; i < 10 * ROWS; i++) {
+  const box = document.createElement('div')
+  box.className = 'box'
+  const el = document.createElement('avatar-motion')
+  applyVariation(el, randomVariation({}, { pinParts: true }))
+  el.setAttribute('emblem', 'icon')
+  // The WebGL pool is three deep for the whole page; a crowd must never claim one.
+  el.setAttribute('no-aura', '')
+  box.appendChild(el)
+  g.appendChild(box)
+}
+</script></body></html>

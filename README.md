@@ -46,7 +46,7 @@ HTML, React, Vue or Svelte.
 | `color` | any hex | An agent's signature colour. It becomes the skin. |
 | `gender` | `male` · `female` | Constrains hair and lower body. Omit for either. |
 | `age` | a number | Greying, reading glasses, a slower pace. |
-| `state` | 39 of them, below | What the face is doing. |
+| `state` | 39 of them | What the face is doing — eyes, brow, mouth, posture and the symbol over the head, together. `avatar options` prints the list. |
 | `skull` | `round` `squircle` `hexagon` `egg` `pear` `capsule` `diamond` `shield` `triangle` `blob` | The generated head shape. Agents only. |
 | `head` | 24 names | Force a hairstyle instead of letting the seed pick. |
 | `body` | 8 names | Force a top. |
@@ -72,20 +72,12 @@ el.send({ type: 'speech.attach', stream })   // the mouth follows real audio
 el.blink(); el.spin(); el.remount(); el.playAct('scan')
 ```
 
-## States
+## Gallery
 
-39 of them. One attribute changes the eyes, brow, mouth, posture and the symbol
-over the head, together.
+Every face here was made by the same generator the library ships. None of them
+were picked, drawn or arranged — the seed did all of it.
 
-![Twenty-four of the thirty-nine states, each labelled](docs/states.png)
-
-## Tool calls
-
-When an agent calls a tool the face performs it: glasses on, a bubble with the
-call in it, the outfit running hot, and the eyes doing the lookup. A search gets
-laser eyes.
-
-![Three agents mid tool call, each with the call name in a bubble](docs/tool-call.png)
+![Fifty avatars in a ten-by-five grid, every one a different person](docs/gallery.png)
 
 ## The lab
 
