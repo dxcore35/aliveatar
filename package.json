@@ -1,7 +1,7 @@
 {
   "name": "aliveatar",
   "version": "1.0.0",
-  "description": "Living avatars for AI agents and people. One seed in, one animated character out. No build step, no dependencies.",
+  "description": "Living avatars for AI agents and people. One seed in, one animated character out.",
   "keywords": [
     "avatar",
     "web-component",

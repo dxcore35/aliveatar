@@ -15,8 +15,10 @@ item and pair of glasses comes from
 **[Humation](https://github.com/endo-yusuke/humation)** (MIT), vendored
 unmodified. The eye motion is ported from a
 [public gist](https://gist.github.com/smontlouis/49a4c9303de70118a90dc43badc1aba5)
-by Jérémy Perret (MIT). Everything added here happens at runtime and never edits
-the art. Both licences are in [`LICENSE`](LICENSE).
+by Jérémy Perret (MIT), and the tap sound from
+**[procedural-sounds](https://github.com/m1ckc3s/procedural-sounds)** (MIT).
+Everything added here happens at runtime and never edits the art. Full credits
+under [Licence](#licence).
 
 ## Install
 
@@ -178,4 +180,10 @@ not animated like a person — is in [`docs/ENGINE.md`](docs/ENGINE.md).
 
 ## Licence
 
-MIT — [`LICENSE`](LICENSE), third-party credits included.
+This project is MIT — [`LICENSE`](LICENSE).
+
+Three third-party parts keep their own MIT licences:
+
+- **[Humation](https://github.com/endo-yusuke/humation)** — the drawn artwork, vendored unmodified under `vendor/@humation/`.
+- **[bloub](https://github.com/jeremy-prt/bloub)** by Jérémy Perret — the eye engine, ported into `src/motion/`.
+- **[procedural-sounds](https://github.com/m1ckc3s/procedural-sounds)** by m1ckc3s — the tap sound in `src/sound.js`.
